@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cippmrg8jtnfs"]
+
+[ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/level/generic/note_table.tscn" id="1_xhrch"]
+
+[node name="TestScene" type="Node2D" unique_id=1432336216]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1406278956]
+
+[node name="NoteTable" parent="." unique_id=2030372289 instance=ExtResource("1_xhrch")]
