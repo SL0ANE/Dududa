@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://bsharveg5e1vc" path="res://prefabs/entities/mind_control/mine_control_wizard_npc.tscn" id="3_7psi0"]
 [ext_resource type="PackedScene" uid="uid://cbrdaunhnaaqp" path="res://prefabs/entities/mind_control/mine_control_wizard_player.tscn" id="4_bsdrt"]
 [ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="5_17e6q"]
+[ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="5_l8360"]
 
 [sub_resource type="TileMapPattern" id="TileMapPattern_epn7r"]
 tile_data = PackedInt32Array(0, 327680, 0, 65536, 327680, 1, 131072, 327680, 2, 1, 393216, 0, 65537, 393216, 1, 131073, 393216, 2, 2, 458752, 0, 65538, 458752, 1, 131074, 458752, 2)
@@ -128,6 +129,9 @@ position = Vector2(32, 32)
 position = Vector2(-32, 32)
 push_strength = 0.22
 push_max_impulse = 0.12
+
+[node name="Flame" parent="MindControlWizardPlayer" unique_id=1780481466 instance=ExtResource("5_l8360")]
+position = Vector2(0, -22)
 
 [node name="NoteTable" parent="." unique_id=2030372289 instance=ExtResource("5_17e6q")]
 position = Vector2(0, 40)

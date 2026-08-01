@@ -1,0 +1,96 @@
+[gd_scene format=3 uid="uid://dcq0pcl4gcims"]
+
+[ext_resource type="Texture2D" uid="uid://blb1adxkjdgd8" path="res://aseprite/resources/vfx/flame/0.png" id="1_0a3ek"]
+[ext_resource type="Texture2D" uid="uid://by4xl3uewg7li" path="res://aseprite/resources/vfx/flame/6.png" id="1_0xvdx"]
+[ext_resource type="Texture2D" uid="uid://57smech6hjkm" path="res://aseprite/resources/vfx/flame/1.png" id="2_5w0m3"]
+[ext_resource type="Texture2D" uid="uid://cvkbh1f5kwxl1" path="res://aseprite/resources/vfx/flame/2.png" id="3_2gaaw"]
+[ext_resource type="Texture2D" uid="uid://dxdrlah0513km" path="res://aseprite/resources/vfx/flame/3.png" id="4_iwygs"]
+[ext_resource type="Texture2D" uid="uid://df5dj30drxbx" path="res://aseprite/resources/vfx/flame/4.png" id="5_i1pn2"]
+[ext_resource type="Texture2D" uid="uid://el27gxolorpe" path="res://aseprite/resources/vfx/flame/5.png" id="6_0xvdx"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_3mno2"]
+particles_animation = true
+particles_anim_h_frames = 7
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_61www"]
+particle_flag_disable_z = true
+direction = Vector3(0, -1, 0)
+spread = 8.0
+initial_velocity_min = 16.0
+initial_velocity_max = 32.0
+gravity = Vector3(0, 8, 0)
+anim_speed_min = 1.25
+anim_speed_max = 1.25
+
+[node name="Flame" type="Node2D" unique_id=1780481466]
+
+[node name="6" type="GPUParticles2D" parent="." unique_id=1398959266]
+material = SubResource("CanvasItemMaterial_3mno2")
+amount = 16
+texture = ExtResource("1_0xvdx")
+preprocess = 0.4
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="5" type="GPUParticles2D" parent="." unique_id=628132030]
+material = SubResource("CanvasItemMaterial_3mno2")
+texture = ExtResource("6_0xvdx")
+preprocess = 0.4
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="4" type="GPUParticles2D" parent="." unique_id=958515511]
+material = SubResource("CanvasItemMaterial_3mno2")
+texture = ExtResource("5_i1pn2")
+preprocess = 0.32
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="3" type="GPUParticles2D" parent="." unique_id=733890924]
+material = SubResource("CanvasItemMaterial_3mno2")
+amount = 2
+texture = ExtResource("4_iwygs")
+preprocess = 0.24
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="2" type="GPUParticles2D" parent="." unique_id=1775531694]
+material = SubResource("CanvasItemMaterial_3mno2")
+amount = 2
+texture = ExtResource("3_2gaaw")
+preprocess = 0.16
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="1" type="GPUParticles2D" parent="." unique_id=1434335569]
+material = SubResource("CanvasItemMaterial_3mno2")
+amount = 1
+amount_ratio = 0.5
+texture = ExtResource("2_5w0m3")
+preprocess = 0.08
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
+
+[node name="0" type="GPUParticles2D" parent="." unique_id=1188508344]
+material = SubResource("CanvasItemMaterial_3mno2")
+amount = 1
+amount_ratio = 0.5
+texture = ExtResource("1_0a3ek")
+randomness = 0.5
+collision_base_size = 0.0
+draw_order = 2
+process_material = SubResource("ParticleProcessMaterial_61www")
