@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://cippmrg8jtnfs"]
 
-[ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/level/generic/note_table.tscn" id="1_xhrch"]
+[ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="1_xhrch"]
 [ext_resource type="PackedScene" uid="uid://tltu20ljw8ss" path="res://prefabs/background/pixel_grid_background.tscn" id="2_1kr4w"]
 [ext_resource type="Texture2D" uid="uid://chgssmo3io04j" path="res://aseprite/resources/levels/generic/placeholder_tile.aseprite" id="3_0hxae"]
 
