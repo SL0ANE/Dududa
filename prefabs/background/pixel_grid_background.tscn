@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://tltu20ljw8ss"]
+
+[ext_resource type="Shader" uid="uid://b577225427r8i" path="res://scripts/rendering/grid_background/pixelart_grid_parallax_2d.gdshader" id="1_gx7nq"]
+[ext_resource type="Script" uid="uid://cygshrs0bsqu0" path="res://scripts/rendering/grid_background/pixel_grid_background.gd" id="2_fvu6k"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_y5qvc"]
+shader = ExtResource("1_gx7nq")
+shader_parameter/color0 = Color(0.019607844, 0.019607844, 0.03137255, 1)
+shader_parameter/color1 = Color(0.047058824, 0.047058824, 0.10980392, 1)
+shader_parameter/cell_size = 16.0
+shader_parameter/parallax_factor = 1.0
+shader_parameter/camera_canvas_offset_px = Vector2(0, 0)
+shader_parameter/stretch_scale = Vector2(1, 1)
+
+[node name="PixelGridBackgroundLayer" type="CanvasLayer" unique_id=2133907842]
+layer = -10
+
+[node name="PixelGridBackground" type="ColorRect" parent="." unique_id=1638087868]
+visible = false
+material = SubResource("ShaderMaterial_y5qvc")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("2_fvu6k")
+color0 = Color(0.019607844, 0.019607844, 0.03137255, 1)
+color1 = Color(0.047058824, 0.047058824, 0.10980392, 1)
+visible_in_game_only = true
+metadata/_custom_type_script = "uid://cygshrs0bsqu0"
