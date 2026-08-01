@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://bn8gjg4lf1yac"]
 
+[ext_resource type="Script" uid="uid://b0tpvxtewnl54" path="res://scripts/entities/note_table.gd" id="1_8oy2l"]
 [ext_resource type="SpriteFrames" uid="uid://d3qf6lnmhfg7r" path="res://aseprite/resources/note_table.aseprite" id="1_hkfyf"]
+[ext_resource type="Texture2D" uid="uid://1iwq12joyw1q" path="res://aseprite/resources/entities/note_tables/frame.png" id="3_6oa72"]
+[ext_resource type="Texture2D" uid="uid://wahsb80wpxni" path="res://aseprite/resources/entities/note_tables/content/debug/0000.png" id="4_qn6hn"]
 
 [sub_resource type="Animation" id="Animation_06sl7"]
 length = 0.001
@@ -15,6 +18,30 @@ tracks/0/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 1,
 "values": [&"open_intro"]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CanvasGroup:position:y")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [-48.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CanvasGroup:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0.0]
 }
 
 [sub_resource type="Animation" id="Animation_hkfyf"]
@@ -44,6 +71,30 @@ tracks/1/keys = {
 "update": 1,
 "values": ["open_idle"]
 }
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CanvasGroup:modulate:a")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(0.3125),
+"update": 1,
+"values": [1.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CanvasGroup:position:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(0.3125),
+"update": 1,
+"values": [-48.0]
+}
 
 [sub_resource type="Animation" id="Animation_tx1wy"]
 length = 0.8
@@ -70,6 +121,30 @@ tracks/1/keys = {
 "transitions": PackedFloat32Array(1, 1),
 "update": 1,
 "values": ["open_intro", &"open_idle"]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CanvasGroup:position:y")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.2, 0.7),
+"transitions": PackedFloat32Array(0.3125, 0.3125),
+"update": 0,
+"values": [-32.0, -48.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CanvasGroup:modulate:a")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.2, 0.7),
+"transitions": PackedFloat32Array(0.3125, 0.3125),
+"update": 0,
+"values": [0.0, 1.0]
 }
 
 [sub_resource type="Animation" id="Animation_ls1th"]
@@ -99,6 +174,30 @@ tracks/1/keys = {
 "update": 1,
 "values": [&"shut_idle"]
 }
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CanvasGroup:position:x")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(0.3125),
+"update": 1,
+"values": [-32.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CanvasGroup:modulate:a")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(0.3125),
+"update": 1,
+"values": [0.0]
+}
 
 [sub_resource type="Animation" id="Animation_wurij"]
 length = 0.8
@@ -125,6 +224,30 @@ tracks/1/keys = {
 "transitions": PackedFloat32Array(1),
 "update": 1,
 "values": ["shut_intro"]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CanvasGroup:position:y")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(0.3125, 0.3125),
+"update": 0,
+"values": [-48.0, -32.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CanvasGroup:modulate:a")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(0.3125, 0.3125),
+"update": 0,
+"values": [1.0, 0.0]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_06sl7"]
@@ -161,32 +284,54 @@ advance_mode = 2
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_hkfyf"]
 advance_mode = 2
+advance_expression = "display"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_6oa72"]
+advance_mode = 2
+advance_expression = "!display"
 
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_ls1th"]
 states/End/position = Vector2(768, 79)
-states/Start/position = Vector2(107, 79)
+states/Start/position = Vector2(688, 31)
 states/open_idle/node = SubResource("AnimationNodeAnimation_hkfyf")
-states/open_idle/position = Vector2(549, 143)
+states/open_idle/position = Vector2(546, 143)
 states/open_intro/node = SubResource("AnimationNodeAnimation_tx1wy")
 states/open_intro/position = Vector2(311, 143)
 states/shut_idle/node = SubResource("AnimationNodeAnimation_ls1th")
 states/shut_idle/position = Vector2(556, 31)
 states/shut_intro/node = SubResource("AnimationNodeAnimation_wurij")
-states/shut_intro/position = Vector2(311, -20)
-transitions = ["shut_intro", "shut_idle", SubResource("AnimationNodeStateMachineTransition_06sl7"), "Start", "shut_idle", SubResource("AnimationNodeStateMachineTransition_0gq0g"), "open_intro", "open_idle", SubResource("AnimationNodeStateMachineTransition_yh6cj"), "shut_idle", "open_intro", SubResource("AnimationNodeStateMachineTransition_hkfyf")]
-graph_offset = Vector2(-107, -51)
+states/shut_intro/position = Vector2(311, 31)
+transitions = ["shut_intro", "shut_idle", SubResource("AnimationNodeStateMachineTransition_06sl7"), "Start", "shut_idle", SubResource("AnimationNodeStateMachineTransition_0gq0g"), "open_intro", "open_idle", SubResource("AnimationNodeStateMachineTransition_yh6cj"), "shut_idle", "open_intro", SubResource("AnimationNodeStateMachineTransition_hkfyf"), "open_idle", "shut_intro", SubResource("AnimationNodeStateMachineTransition_6oa72")]
+graph_offset = Vector2(-47, -12)
 
 [node name="NoteTable" type="Node2D" unique_id=2030372289]
+z_index = -1
+script = ExtResource("1_8oy2l")
+content_texture = ExtResource("4_qn6hn")
+display_radius_units = 4.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1977434913]
+position = Vector2(0, -16)
 sprite_frames = ExtResource("1_hkfyf")
 animation = &"open_intro"
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=173446744]
 libraries/ = SubResource("AnimationLibrary_06sl7")
-autoplay = &"open_idle"
+autoplay = &"shut_idle"
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=51617257]
 tree_root = SubResource("AnimationNodeStateMachine_ls1th")
 advance_expression_base_node = NodePath("..")
 anim_player = NodePath("../AnimationPlayer")
+
+[node name="CanvasGroup" type="CanvasGroup" parent="." unique_id=543599070]
+modulate = Color(1, 1, 1, 0)
+position = Vector2(0, -48)
+
+[node name="ContentSprite" type="Sprite2D" parent="CanvasGroup" unique_id=746728716]
+z_index = -4
+texture = ExtResource("4_qn6hn")
+
+[node name="ContentFrame" type="Sprite2D" parent="CanvasGroup" unique_id=1502698054]
+z_index = -4
+texture = ExtResource("3_6oa72")

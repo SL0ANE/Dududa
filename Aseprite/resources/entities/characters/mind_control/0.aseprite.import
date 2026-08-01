@@ -13,7 +13,7 @@ dest_files=["res://.godot/imported/0.aseprite-1b9a0fc1d79c5b453a64b1a46a0e6806.r
 [params]
 
 layer/exclude_layers_pattern=""
-layer/only_visible_layers=false
+layer/only_visible_layers=true
 sheet/sheet_type="packed"
 sheet/sheet_columns=12
 sheet/frame_padding=0

@@ -1,6 +1,8 @@
 extends "res://scripts/entities/controllers/pawn_controller.gd"
 class_name AIPawnController
 
+const CollisionMetrics = preload("res://scripts/shared/collision_metrics.gd")
+
 # Explicit target node path. If set and valid, it has priority over group search.
 @export var target_path: NodePath
 # Fallback target source: nearest Node2D in this group.
@@ -160,7 +162,7 @@ func _would_step_off_edge(pawn: CharacterBody2D, move_axis: float) -> bool:
 
 	var forward := GameUnits.units_to_pixels(_get_ground_check_forward(pawn))
 	var depth := GameUnits.units_to_pixels(_get_ground_check_depth(pawn))
-	var body_radius := _get_collision_radius_pixels(pawn)
+	var body_radius := CollisionMetrics.get_collision_radius_pixels_from_node(pawn)
 	var foot_y := pawn.global_position.y + body_radius
 	var from := Vector2(pawn.global_position.x + move_axis * forward, foot_y)
 	var to := from + Vector2(0.0, depth)
@@ -250,68 +252,8 @@ func _find_nearest_target_in_group(pawn: CharacterBody2D) -> Node2D:
 
 
 func _compute_edge_distance_pixels(a: CharacterBody2D, b: Node2D) -> float:
-	var center_distance := a.global_position.distance_to(b.global_position)
-	var radius_sum := _get_collision_radius_pixels(a) + _get_collision_radius_pixels_from_node(b)
-	return maxf(center_distance - radius_sum, 0.0)
-
-
-func _get_collision_radius_pixels(body: CharacterBody2D) -> float:
-	return _get_collision_radius_pixels_from_node(body)
-
-
-func _get_collision_radius_pixels_from_node(node: Node) -> float:
-	var max_radius := 0.0
-	for child in node.get_children():
-		if not (child is CollisionShape2D):
-			continue
-
-		var cs := child as CollisionShape2D
-		if cs.disabled or cs.shape == null:
-			continue
-
-		var shape_radius := _shape_radius_pixels(cs.shape)
-		shape_radius += cs.position.length()
-		max_radius = maxf(max_radius, shape_radius)
-
-	return max_radius
+	return CollisionMetrics.compute_edge_distance_pixels(a, b)
 
 
 func _get_collision_half_height_pixels_from_node(node: Node) -> float:
-	var max_half_height := 0.0
-	for child in node.get_children():
-		if not (child is CollisionShape2D):
-			continue
-
-		var cs := child as CollisionShape2D
-		if cs.disabled or cs.shape == null:
-			continue
-
-		var shape_half_height := _shape_half_height_pixels(cs.shape)
-		shape_half_height += absf(cs.position.y)
-		max_half_height = maxf(max_half_height, shape_half_height)
-
-	return max_half_height
-
-
-func _shape_radius_pixels(shape: Shape2D) -> float:
-	if shape is CircleShape2D:
-		return (shape as CircleShape2D).radius
-	if shape is RectangleShape2D:
-		return (shape as RectangleShape2D).size.length() * 0.5
-	if shape is CapsuleShape2D:
-		var capsule := shape as CapsuleShape2D
-		return capsule.radius + capsule.height * 0.5
-
-	return 0.0
-
-
-func _shape_half_height_pixels(shape: Shape2D) -> float:
-	if shape is CircleShape2D:
-		return (shape as CircleShape2D).radius
-	if shape is RectangleShape2D:
-		return (shape as RectangleShape2D).size.y * 0.5
-	if shape is CapsuleShape2D:
-		var capsule := shape as CapsuleShape2D
-		return capsule.radius + capsule.height * 0.5
-
-	return 0.0
+	return CollisionMetrics.get_collision_half_height_pixels_from_node(node)

@@ -5,12 +5,13 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_y5qvc"]
 shader = ExtResource("1_gx7nq")
-shader_parameter/color0 = Color(0.019607844, 0.019607844, 0.03137255, 1)
-shader_parameter/color1 = Color(0.047058824, 0.047058824, 0.10980392, 1)
+shader_parameter/color0 = Color(0.043137256, 0.047058824, 0.08627451, 1)
+shader_parameter/color1 = Color(0.0627451, 0.0627451, 0.16470589, 1)
 shader_parameter/cell_size = 16.0
 shader_parameter/parallax_factor = 1.0
 shader_parameter/camera_canvas_offset_px = Vector2(0, 0)
 shader_parameter/stretch_scale = Vector2(1, 1)
+shader_parameter/camera_zoom_scale = Vector2(1, 1)
 
 [node name="PixelGridBackgroundLayer" type="CanvasLayer" unique_id=2133907842]
 layer = -10
@@ -22,7 +23,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("2_fvu6k")
-color0 = Color(0.019607844, 0.019607844, 0.03137255, 1)
-color1 = Color(0.047058824, 0.047058824, 0.10980392, 1)
+color0 = Color(0.043137256, 0.047058824, 0.08627451, 1)
+color1 = Color(0.0627451, 0.0627451, 0.16470589, 1)
 visible_in_game_only = true
 metadata/_custom_type_script = "uid://cygshrs0bsqu0"

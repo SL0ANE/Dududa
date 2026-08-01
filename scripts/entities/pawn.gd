@@ -62,7 +62,7 @@ enum PawnCollisionMode {
 # Horizontal drag applied to external velocity while airborne.
 @export var external_drag_air := 80.0
 # Clears downward external Y velocity when grounded.
-@export var clear_downward_external_on_floor := true
+@export var clear_downward_external_on_ground := true
 
 @export_group("Pawn Collision")
 # Pawn-to-pawn collision mode:
@@ -83,6 +83,10 @@ enum PawnCollisionMode {
 @export var corner_correction_height := 0.18
 # Minimum horizontal probe distance in pixels used by corner correction.
 @export var corner_correction_probe_pixels := 1.0
+# Snap distance used to keep pawn attached to ground on small downhill steps/slopes.
+@export var floor_snap_length_units := 0.2
+# Maximum downward driven velocity (units/s) still eligible for manual floor snap.
+@export var floor_snap_max_fall_speed := 2.2
 
 @export_group("Nodes")
 # Relative path to controller node used to build commands.
@@ -94,15 +98,7 @@ enum PawnCollisionMode {
 # Default art facing direction used to compute flip_h.
 @export_enum("Left", "Right") var sprite_default_facing := -1
 
-# AnimationTree can read these directly from the pawn as expression base node.
-var anim_move_axis := 0.0
-var anim_horizontal_speed := 0.0
-var anim_horizontal_speed_value := 0.0
-var anim_vertical_speed := 0.0
-var anim_vertical_speed_value := 0.0
-var anim_is_on_floor := false
-var anim_is_moving := false
-var anim_facing := 1
+var _facing := 1
 
 var _controller: PawnController
 # Driven velocity is produced by the pawn movement model (input, jump profile).
@@ -111,6 +107,7 @@ var _driven_velocity := Vector2.ZERO
 # Keep this channel additive so external impulses do not get overwritten by jump logic.
 var _external_velocity := Vector2.ZERO
 var _air_phase_time := 0.0
+var _normalized_air_phase := 0.0
 var _was_rising := false
 var _coyote_time_left := 0.0
 var _last_pawn_collision_mode := -1
@@ -133,20 +130,22 @@ func _ready() -> void:
 	if _animation_tree:
 		_animation_tree.active = true
 
+	_ensure_valid_sprite_animation()
+
 
 func _physics_process(delta: float) -> void:
 	if _last_pawn_collision_mode != pawn_collision_mode:
 		_last_pawn_collision_mode = pawn_collision_mode
 		call_deferred("_refresh_all_pawn_collisions")
 
-	var was_on_floor := is_on_floor()
+	var was_on_ground := is_on_floor()
 	var was_on_wall := is_on_wall()
-	if was_on_floor:
+	if was_on_ground:
 		_coyote_time_left = coyote_time
 	else:
 		_coyote_time_left = maxf(_coyote_time_left - delta, 0.0)
 
-	if was_on_floor:
+	if was_on_ground:
 		_driven_velocity.y = 0.0
 
 	var command := _build_command(delta)
@@ -154,7 +153,7 @@ func _physics_process(delta: float) -> void:
 	var look_axis: float = command.get("look_axis", move_axis)
 	var jump_pressed: bool = command.get("jump_pressed", false)
 
-	var can_jump := was_on_floor or _coyote_time_left > 0.0
+	var can_jump := was_on_ground or _coyote_time_left > 0.0
 	if jump_pressed and can_jump:
 		var jump_velocity := _compute_jump_velocity()
 		_driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
@@ -164,7 +163,7 @@ func _physics_process(delta: float) -> void:
 		onjump(jump_velocity)
 		jumped.emit(jump_velocity)
 
-	_apply_vertical_velocity(delta, was_on_floor)
+	_apply_vertical_velocity(delta, was_on_ground)
 	_apply_horizontal_velocity(move_axis, delta)
 	_apply_external_forces(delta)
 	_try_corner_correction(move_axis, delta)
@@ -172,8 +171,9 @@ func _physics_process(delta: float) -> void:
 	velocity = _driven_velocity + _external_velocity
 	var pre_slide_velocity := velocity
 	move_and_slide()
+	_try_floor_snap_after_slide(was_on_ground, jump_pressed)
 	_apply_pawn_push_collisions()
-	_process_contact_events(was_on_floor, was_on_wall, pre_slide_velocity)
+	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
 	# Reconcile channels with collision result to avoid drift over time.
 	_sync_velocity_components_after_slide()
 	_update_animation_state(look_axis)
@@ -211,6 +211,28 @@ func _resolve_sprite() -> AnimatedSprite2D:
 	return null
 
 
+func _ensure_valid_sprite_animation() -> void:
+	if _sprite == null:
+		return
+	if _sprite.sprite_frames == null:
+		return
+
+	var current_anim := _sprite.animation
+	if _sprite.sprite_frames.has_animation(current_anim):
+		return
+
+	var names := _sprite.sprite_frames.get_animation_names()
+	if names.is_empty():
+		return
+
+	var fallback: StringName = names[0]
+	if _sprite.sprite_frames.has_animation(&"Idle"):
+		fallback = &"Idle"
+
+	push_warning("Pawn: invalid sprite animation '%s', fallback to '%s'." % [String(current_anim), String(fallback)])
+	_sprite.animation = fallback
+
+
 func _apply_horizontal_velocity(move_axis: float, delta: float) -> void:
 	move_axis = clampf(move_axis, -1.0, 1.0)
 	var max_speed_pixels := GameUnits.units_to_pixels(max_speed)
@@ -238,8 +260,9 @@ func _apply_horizontal_velocity(move_axis: float, delta: float) -> void:
 	_driven_velocity.x = move_toward(_driven_velocity.x, target_speed, change_rate_pixels * delta)
 
 
-func _apply_vertical_velocity(delta: float, was_on_floor: bool) -> void:
-	if was_on_floor:
+func _apply_vertical_velocity(delta: float, was_on_ground: bool) -> void:
+	if was_on_ground:
+		_normalized_air_phase = 0.0
 		_air_phase_time = 0.0
 		_was_rising = false
 		return
@@ -251,10 +274,11 @@ func _apply_vertical_velocity(delta: float, was_on_floor: bool) -> void:
 
 	_air_phase_time += delta
 	var phase_time := jump_time_to_peak if is_rising else jump_time_to_fall
-	var normalized_phase := clampf(_air_phase_time / maxf(phase_time, 0.001), 0.0, 1.0)
+	_normalized_air_phase = clampf(_air_phase_time / maxf(phase_time, 0.001), 0.0, 1.0)
 
 	var gravity := _compute_gravity(is_rising)
-	var gravity_curve_multiplier := maxf(_sample_curve(jump_gravity_curve, normalized_phase, 1.0), 0.0)
+	var gravity_curve_multiplier := maxf(_sample_curve(jump_gravity_curve, _normalized_air_phase, 1.0), 0.0)
+	_normalized_air_phase = (_normalized_air_phase - 1.0 if is_rising else _normalized_air_phase)
 	_driven_velocity.y += GameUnits.units_to_pixels(gravity * gravity_curve_multiplier) * delta
 
 
@@ -268,38 +292,30 @@ func _apply_external_forces(delta: float) -> void:
 
 
 func _sync_velocity_components_after_slide() -> void:
-	if is_on_floor() and clear_downward_external_on_floor and _external_velocity.y > 0.0:
+	if is_on_floor() and clear_downward_external_on_ground and _external_velocity.y > 0.0:
 		_external_velocity.y = 0.0
 
 	_driven_velocity = velocity - _external_velocity
 
 
 func _update_animation_state(look_axis: float) -> void:
-	anim_move_axis = look_axis
-	anim_horizontal_speed = absf(velocity.x)
-	anim_horizontal_speed_value = GameUnits.pixels_to_units(anim_horizontal_speed)
-	anim_vertical_speed = velocity.y
-	anim_vertical_speed_value = GameUnits.pixels_to_units(anim_vertical_speed)
-	anim_is_on_floor = is_on_floor()
-	anim_is_moving = anim_horizontal_speed_value > moving_threshold
-
-	var old_facing := anim_facing
+	var old_facing := _facing
 	if not is_zero_approx(look_axis):
-		anim_facing = -1 if look_axis < 0.0 else 1
+		_facing = -1 if look_axis < 0.0 else 1
 	elif not is_zero_approx(velocity.x):
-		anim_facing = -1 if velocity.x < 0.0 else 1
+		_facing = -1 if velocity.x < 0.0 else 1
 
-	if old_facing != anim_facing:
-		onturn(old_facing, anim_facing)
-		turned.emit(old_facing, anim_facing)
+	if old_facing != _facing:
+		onturn(old_facing, _facing)
+		turned.emit(old_facing, _facing)
 
 	if _sprite:
 		var clamped_default_facing := -1 if sprite_default_facing < 0 else 1
-		_sprite.flip_h = anim_facing != clamped_default_facing
+		_sprite.flip_h = _facing != clamped_default_facing
 
 
-func _process_contact_events(was_on_floor: bool, was_on_wall: bool, pre_slide_velocity: Vector2) -> void:
-	if not was_on_floor and is_on_floor():
+func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_velocity: Vector2) -> void:
+	if not was_on_ground and is_on_floor():
 		var impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
 		onlanded(impact_velocity)
 		landed.emit(impact_velocity)
@@ -341,6 +357,34 @@ func _try_corner_correction(move_axis: float, delta: float) -> void:
 		if not test_move(elevated, horizontal_probe):
 			global_position += up
 			return
+
+
+func _try_floor_snap_after_slide(was_on_ground: bool, jump_pressed: bool) -> void:
+	if jump_pressed:
+		return
+	if is_on_floor():
+		return
+	if not was_on_ground:
+		return
+	# Do not re-snap while moving upward (jump, knock-up, moving platforms, etc.).
+	if velocity.y < 0.0:
+		return
+	if _driven_velocity.y < 0.0:
+		return
+	if _external_velocity.y < 0.0:
+		return
+	if floor_snap_length_units <= 0.0:
+		return
+
+	var max_fall_px := GameUnits.units_to_pixels(maxf(floor_snap_max_fall_speed, 0.0))
+	if _driven_velocity.y > max_fall_px:
+		return
+
+	# Keep ground contact when descending slopes so locomotion state stays stable.
+	var original_floor_snap := self.floor_snap_length
+	self.floor_snap_length = GameUnits.units_to_pixels(floor_snap_length_units)
+	apply_floor_snap()
+	self.floor_snap_length = original_floor_snap
 
 
 func _get_wall_collision_normal() -> Vector2:
