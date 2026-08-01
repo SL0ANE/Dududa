@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://drb5bun2gdg3w"
+path="res://.godot/imported/regular_0.aseprite-6bb00bb1a6644f396c50d28f70b550e3.res"
+
+[deps]
+
+source_file="res://aseprite/resources/entities/skulls/regular_0.aseprite"
+dest_files=["res://.godot/imported/regular_0.aseprite-6bb00bb1a6644f396c50d28f70b550e3.res"]
+
+[params]
+
