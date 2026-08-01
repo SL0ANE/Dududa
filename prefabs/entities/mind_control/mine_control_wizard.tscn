@@ -2,8 +2,10 @@
 
 [ext_resource type="Script" uid="uid://7ku0fcfvrwj0" path="res://scripts/entities/pawn.gd" id="1_5hrfj"]
 [ext_resource type="SpriteFrames" uid="uid://bqwxeqmuuc3r3" path="res://aseprite/resources/entities/characters/mind_control/0.aseprite" id="1_nhpvn"]
+[ext_resource type="AnimationNodeStateMachine" uid="uid://2kvpuab4vqa5" path="res://animations/standard_pawn.tres" id="3_hreaw"]
+[ext_resource type="Script" uid="uid://dgks5in2lbqg7" path="res://scripts/entities/pawn_animation_tree_bridge.gd" id="3_jgdjt"]
 
-[sub_resource type="Animation" id="Animation_6sd3q"]
+[sub_resource type="Animation" id="Animation_qoqhy"]
 length = 0.6
 loop_mode = 1
 tracks/0/type = "value"
@@ -28,46 +30,71 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 1,
-"values": ["idle"]
+"values": ["Idle"]
 }
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_8kbd0"]
+[sub_resource type="Animation" id="Animation_qwhki"]
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("AnimatedSprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("AnimatedSprite2D:animation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": ["Move"]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ihk0f"]
 _data = {
-&"idle": SubResource("Animation_6sd3q")
+&"Idle": SubResource("Animation_qoqhy"),
+&"Move": SubResource("Animation_qwhki")
 }
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_6sd3q"]
-animation = &"idle"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_8kbd0"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_3mno2"]
-states/End/position = Vector2(694, 100)
-states/idle/node = SubResource("AnimationNodeAnimation_6sd3q")
-states/idle/position = Vector2(395, 70)
-transitions = ["Start", "idle", SubResource("AnimationNodeStateMachineTransition_8kbd0")]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3mno2"]
-radius = 7.5
-height = 15.0
+radius = 8.0
+height = 16.0
 
 [node name="MindControlWizard" type="CharacterBody2D" unique_id=336691558]
 script = ExtResource("1_5hrfj")
+max_speed = 6.0
+ground_acceleration = 48.0
+ground_deceleration = 64.0
+air_acceleration = 48.0
+jump_height = 2.25
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=853470962]
 position = Vector2(0, -15)
 sprite_frames = ExtResource("1_nhpvn")
-animation = &"idle"
+animation = &"Idle"
 frame = 2
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=687346050]
-libraries/ = SubResource("AnimationLibrary_8kbd0")
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1082593966]
+libraries/ = SubResource("AnimationLibrary_ihk0f")
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=60151999]
-tree_root = SubResource("AnimationNodeStateMachine_3mno2")
+tree_root = ExtResource("3_hreaw")
 advance_expression_base_node = NodePath("..")
 anim_player = NodePath("../AnimationPlayer")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=642421544]
 shape = SubResource("CapsuleShape2D_3mno2")
+
+[node name="AnimationBridge" type="Node2D" parent="." unique_id=276961455]
+script = ExtResource("3_jgdjt")

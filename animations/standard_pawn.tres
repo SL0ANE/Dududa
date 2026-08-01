@@ -1,0 +1,35 @@
+[gd_resource type="AnimationNodeStateMachine" format=3 uid="uid://2kvpuab4vqa5"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5m5kv"]
+animation = &"Air"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jgdjt"]
+animation = &"Idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_n8w3q"]
+animation = &"Jump"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_j2m6s"]
+animation = &"Move"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_m13pr"]
+animation = &"Pushed"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_hreaw"]
+advance_mode = 2
+
+[resource]
+states/Air/node = SubResource("AnimationNodeAnimation_5m5kv")
+states/Air/position = Vector2(366, 200)
+states/End/position = Vector2(694, 100)
+states/Idle/node = SubResource("AnimationNodeAnimation_jgdjt")
+states/Idle/position = Vector2(117, 200)
+states/Jump/node = SubResource("AnimationNodeAnimation_n8w3q")
+states/Jump/position = Vector2(497, 200)
+states/Move/node = SubResource("AnimationNodeAnimation_j2m6s")
+states/Move/position = Vector2(236, 200)
+states/Pushed/node = SubResource("AnimationNodeAnimation_m13pr")
+states/Pushed/position = Vector2(631, 200)
+states/Start/position = Vector2(117, 100)
+transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_hreaw")]
+graph_offset = Vector2(9, 67)

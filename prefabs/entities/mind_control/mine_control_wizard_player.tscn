@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cbrdaunhnaaqp"]
+
+[ext_resource type="PackedScene" uid="uid://dmpusgqw5q8jm" path="res://prefabs/entities/mind_control/mine_control_wizard.tscn" id="1_hwe8m"]
+[ext_resource type="Script" uid="uid://5jnnbaskc2h7" path="res://scripts/entities/controllers/player_pawn_controller.gd" id="2_x7go1"]
+
+[node name="MindControlWizardPlayer" unique_id=772498426 instance=ExtResource("1_hwe8m")]
+
+[node name="Controller" type="Node" parent="." index="4" unique_id=486151749]
+script = ExtResource("2_x7go1")

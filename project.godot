@@ -23,6 +23,10 @@ window/size/initial_position_type=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[dududa]
+
+pixels_per_unit=16.0
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/AS2P/plugin.cfg", "res://addons/AsepriteWizard/plugin.cfg")

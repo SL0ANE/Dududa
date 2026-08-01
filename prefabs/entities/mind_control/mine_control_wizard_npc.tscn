@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://bsharveg5e1vc"]
+
+[ext_resource type="PackedScene" uid="uid://dmpusgqw5q8jm" path="res://prefabs/entities/mind_control/mine_control_wizard.tscn" id="1_v2lwy"]
+[ext_resource type="Script" uid="uid://dkfey1nj2uoli" path="res://scripts/entities/controllers/ai_pawn_controller.gd" id="2_vx0vk"]
+
+[node name="MindControlWizardNPC" unique_id=1275284154 instance=ExtResource("1_v2lwy")]
+push_strength = 0.1
+push_max_impulse = 0.05
+
+[node name="AnimatedSprite2D" parent="." index="0" unique_id=853470962]
+frame = 5
+
+[node name="Controller" type="Node" parent="." index="4" unique_id=2027321810]
+script = ExtResource("2_vx0vk")
+follow_distance = 1.0
+jump_cooldown_scale = 2.0
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="." index="5" unique_id=1087390596]
