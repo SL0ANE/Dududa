@@ -87,11 +87,11 @@ func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visua
 		else:
 			global_position.y -= collider_height_delta_px * 0.5
 
-	_apply_visual_height(target_height_units, keep_top, animate_visual)
+	_apply_visual_height(target_height_units, target_collider_height_units, keep_top, animate_visual)
 	_sync_jump_enabled_state()
 
 
-func _apply_visual_height(target_height_units: float, keep_top: bool, animate: bool) -> void:
+func _apply_visual_height(target_height_units: float, target_collider_height_units: float, keep_top: bool, animate: bool) -> void:
 	if _visual_scale_root == null or _visual_position_root == null:
 		return
 
@@ -103,7 +103,7 @@ func _apply_visual_height(target_height_units: float, keep_top: bool, animate: b
 	var ratio := maxf(target_height_units / safe_original_height, 0.0)
 	var current_scale := _visual_scale_root.scale
 	var target_scale := Vector2(_visual_scale_base_scale.x, _visual_scale_base_scale.y * ratio)
-	var target_scale_position := _compute_visual_anchor_position(target_scale.y) 
+	var target_scale_position := _compute_visual_anchor_position(target_scale.y) + Vector2(0, GameUnits.units_to_pixels(collider_height_offset_units)) * 0.5
 	var target_visual_position := _compute_visual_position_root_position(target_height_units)
 	_visual_position_root.position = target_visual_position
 	var offset = (GameUnits.units_to_pixels(target_height_units) - current_scale.y * GameUnits.units_to_pixels(_visual_original_height)) * 0.5;

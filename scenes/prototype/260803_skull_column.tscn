@@ -136,5 +136,6 @@ content_texture = ExtResource("7_mbbcq")
 
 [node name="DeathControlWizard" parent="." unique_id=1582720686 instance=ExtResource("7_6hxeo")]
 position = Vector2(-34, 24)
-drop_count = 8
-collider_height_offset_units = 0.5
+drop_count = 16
+legacy_height = 1.0
+collider_height_offset_units = -0.75

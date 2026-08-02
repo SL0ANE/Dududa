@@ -371,9 +371,9 @@ push_strength = 0.1
 push_max_impulse = 0.05
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=853470962]
-position = Vector2(0, -15)
+position = Vector2(0, -23)
 sprite_frames = ExtResource("1_nhpvn")
-animation = &"Jump_6"
+animation = &"Air"
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=60151999]
 tree_root = ExtResource("3_hreaw")
@@ -385,6 +385,7 @@ parameters/Jump/blend_position = 0.76
 libraries/ = SubResource("AnimationLibrary_rc2ym")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=642421544]
+position = Vector2(0, -8)
 shape = SubResource("CapsuleShape2D_3mno2")
 
 [node name="AnimationBridge" type="Node2D" parent="." unique_id=276961455]
