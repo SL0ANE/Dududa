@@ -45,6 +45,10 @@ enum PawnCollisionMode {
 @export var moving_threshold := 0.08
 
 @export_group("Jump")
+# Enable active jump input.
+@export var jump_enabled := true
+# Total jump count allowed before landing (1 = single jump, 2 = double jump).
+@export var max_jump_count := 1
 # Jump apex height in game units.
 @export var jump_height := 1.25
 # Time from takeoff to apex in seconds.
@@ -63,6 +67,10 @@ enum PawnCollisionMode {
 @export var external_drag_air := 80.0
 # Clears downward external Y velocity when grounded.
 @export var clear_downward_external_on_ground := true
+
+@export_group("Active Actions")
+# Enable active horizontal movement input.
+@export var movement_enabled := true
 
 @export_group("Pawn Collision")
 # Pawn-to-pawn collision mode:
@@ -110,12 +118,13 @@ var _air_phase_time := 0.0
 var _normalized_air_phase := 0.0
 var _was_rising := false
 var _coyote_time_left := 0.0
+var _jump_count_since_ground := 0
 var _last_pawn_collision_mode := -1
 var _was_moving := false
 var _pushing_prev := {}
 var _pushed_prev := {}
 
-@onready var _animation_tree: AnimationTree = get_node_or_null(animation_tree_path)
+# @onready var _animation_tree: AnimationTree = get_node_or_null(animation_tree_path)
 @onready var _sprite: AnimatedSprite2D = _resolve_sprite()
 
 
@@ -127,10 +136,10 @@ func _ready() -> void:
 	call_deferred("_refresh_all_pawn_collisions")
 
 	_controller = _resolve_controller()
-	if _animation_tree:
-		_animation_tree.active = true
+	# if _animation_tree:
+		# _animation_tree.active = true
 
-	_ensure_valid_sprite_animation()
+	# _ensure_valid_sprite_animation()
 
 
 func _physics_process(delta: float) -> void:
@@ -142,6 +151,7 @@ func _physics_process(delta: float) -> void:
 	var was_on_wall := is_on_wall()
 	if was_on_ground:
 		_coyote_time_left = coyote_time
+		_jump_count_since_ground = 0
 	else:
 		_coyote_time_left = maxf(_coyote_time_left - delta, 0.0)
 
@@ -150,18 +160,26 @@ func _physics_process(delta: float) -> void:
 
 	var command := _build_command(delta)
 	var move_axis: float = command.get("move_axis", 0.0)
+	if not movement_enabled:
+		move_axis = 0.0
 	var look_axis: float = command.get("look_axis", move_axis)
 	var jump_pressed: bool = command.get("jump_pressed", false)
+	if not jump_enabled:
+		jump_pressed = false
 
-	var can_jump := was_on_ground or _coyote_time_left > 0.0
+	var jumps_allowed := maxi(max_jump_count, 0)
+	var has_jumps_left := _jump_count_since_ground < jumps_allowed
+	var can_ground_jump := was_on_ground or _coyote_time_left > 0.0
+	var can_jump := has_jumps_left and (can_ground_jump or not was_on_ground)
 	if jump_pressed and can_jump:
 		var jump_velocity := _compute_jump_velocity()
-		_driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
+		# _driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
 		_air_phase_time = 0.0
 		_was_rising = true
 		_coyote_time_left = 0.0
-		onjump(jump_velocity)
-		jumped.emit(jump_velocity)
+		_jump_count_since_ground += 1
+		on_jump(jump_velocity)
+		# jumped.emit(jump_velocity)
 
 	_apply_vertical_velocity(delta, was_on_ground)
 	_apply_horizontal_velocity(move_axis, delta)
@@ -209,28 +227,6 @@ func _resolve_sprite() -> AnimatedSprite2D:
 		return node
 
 	return null
-
-
-func _ensure_valid_sprite_animation() -> void:
-	if _sprite == null:
-		return
-	if _sprite.sprite_frames == null:
-		return
-
-	var current_anim := _sprite.animation
-	if _sprite.sprite_frames.has_animation(current_anim):
-		return
-
-	var names := _sprite.sprite_frames.get_animation_names()
-	if names.is_empty():
-		return
-
-	var fallback: StringName = names[0]
-	if _sprite.sprite_frames.has_animation(&"Idle"):
-		fallback = &"Idle"
-
-	push_warning("Pawn: invalid sprite animation '%s', fallback to '%s'." % [String(current_anim), String(fallback)])
-	_sprite.animation = fallback
 
 
 func _apply_horizontal_velocity(move_axis: float, delta: float) -> void:
@@ -306,7 +302,7 @@ func _update_animation_state(look_axis: float) -> void:
 		_facing = -1 if velocity.x < 0.0 else 1
 
 	if old_facing != _facing:
-		onturn(old_facing, _facing)
+		on_turn(old_facing, _facing)
 		turned.emit(old_facing, _facing)
 
 	if _sprite:
@@ -317,13 +313,13 @@ func _update_animation_state(look_axis: float) -> void:
 func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_velocity: Vector2) -> void:
 	if not was_on_ground and is_on_floor():
 		var impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
-		onlanded(impact_velocity)
+		on_landed(impact_velocity)
 		landed.emit(impact_velocity)
 
 	if not was_on_wall and is_on_wall():
 		var wall_normal := _get_wall_collision_normal()
 		var wall_impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
-		onwallhit(wall_normal, wall_impact_velocity)
+		on_wall_hit(wall_normal, wall_impact_velocity)
 		wall_hit.emit(wall_normal, wall_impact_velocity)
 
 
@@ -536,21 +532,18 @@ func _process_move_lifecycle(current_velocity: float, input_axis: float, grounde
 
 	if is_moving_now and not _was_moving:
 		on_move_started(current_velocity, input_axis, grounded)
-		onmovestarted(current_velocity, input_axis, grounded)
 		move_started.emit(current_velocity, input_axis, grounded)
 
 	if is_moving_now:
 		# Keep active updates in air too, so animation/state machines can react continuously.
 		on_move_active(current_velocity, input_axis, grounded)
-		onmoveactive(current_velocity, input_axis, grounded)
 		move_active.emit(current_velocity, input_axis, grounded)
 		# Legacy compatibility.
-		onmove(current_velocity, input_axis, grounded)
+		on_move(current_velocity, input_axis, grounded)
 		moved.emit(current_velocity, input_axis, grounded)
 
 	if not is_moving_now and _was_moving:
 		on_move_ended(current_velocity, input_axis, grounded)
-		onmoveended(current_velocity, input_axis, grounded)
 		move_ended.emit(current_velocity, input_axis, grounded)
 
 	_was_moving = is_moving_now
@@ -584,11 +577,9 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 
 		if not _pushing_prev.has(key):
 			on_push_started(other, mode, direction)
-			onpushstarted(other, mode, direction)
 			push_started.emit(other, mode, direction)
 
 		on_push_active(other, mode, direction, overlap)
-		onpushactive(other, mode, direction, overlap)
 		push_active.emit(other, mode, direction, overlap)
 
 	for key in _pushing_prev.keys():
@@ -598,7 +589,6 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 		var prev_other := prev["other"] as Pawn
 		var prev_mode := int(prev["mode"])
 		on_push_ended(prev_other, prev_mode)
-		onpushended(prev_other, prev_mode)
 		push_ended.emit(prev_other, prev_mode)
 
 	for key in pushed_curr.keys():
@@ -610,11 +600,9 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 
 		if not _pushed_prev.has(key):
 			on_pushed_started(other, mode, direction)
-			onpushedstarted(other, mode, direction)
 			pushed_started.emit(other, mode, direction)
 
 		on_pushed_active(other, mode, direction, overlap)
-		onpushedactive(other, mode, direction, overlap)
 		pushed_active.emit(other, mode, direction, overlap)
 
 	for key in _pushed_prev.keys():
@@ -624,7 +612,6 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 		var prev_other := prev["other"] as Pawn
 		var prev_mode := int(prev["mode"])
 		on_pushed_ended(prev_other, prev_mode)
-		onpushedended(prev_other, prev_mode)
 		pushed_ended.emit(prev_other, prev_mode)
 
 	_pushing_prev = pushing_curr.duplicate(true)
@@ -768,15 +755,15 @@ func set_external_velocity(velocity_value: Vector2) -> void:
 
 
 # Hooks for subclass extension.
-func onjump(_jump_velocity: float) -> void:
+func on_jump(_jump_velocity: float) -> void:
 	pass
 
 
-func onturn(_old_facing: int, _new_facing: int) -> void:
+func on_turn(_old_facing: int, _new_facing: int) -> void:
 	pass
 
 
-func onmove(_current_velocity: float, _input_axis: float, _grounded: bool) -> void:
+func on_move(_current_velocity: float, _input_axis: float, _grounded: bool) -> void:
 	pass
 
 
@@ -792,23 +779,11 @@ func on_move_ended(_current_velocity: float, _input_axis: float, _grounded: bool
 	pass
 
 
-func onmovestarted(_current_velocity: float, _input_axis: float, _grounded: bool) -> void:
+func on_landed(_impact_velocity: Vector2) -> void:
 	pass
 
 
-func onmoveactive(_current_velocity: float, _input_axis: float, _grounded: bool) -> void:
-	pass
-
-
-func onmoveended(_current_velocity: float, _input_axis: float, _grounded: bool) -> void:
-	pass
-
-
-func onlanded(_impact_velocity: Vector2) -> void:
-	pass
-
-
-func onwallhit(_collision_normal: Vector2, _impact_velocity: Vector2) -> void:
+func on_wall_hit(_collision_normal: Vector2, _impact_velocity: Vector2) -> void:
 	pass
 
 
@@ -834,31 +809,6 @@ func on_pushed_active(_other: Pawn, _mode: int, _direction: float, _overlap: flo
 
 func on_pushed_ended(_other: Pawn, _mode: int) -> void:
 	pass
-
-
-func onpushstarted(_other: Pawn, _mode: int, _direction: float) -> void:
-	pass
-
-
-func onpushactive(_other: Pawn, _mode: int, _direction: float, _overlap: float) -> void:
-	pass
-
-
-func onpushended(_other: Pawn, _mode: int) -> void:
-	pass
-
-
-func onpushedstarted(_other: Pawn, _mode: int, _direction: float) -> void:
-	pass
-
-
-func onpushedactive(_other: Pawn, _mode: int, _direction: float, _overlap: float) -> void:
-	pass
-
-
-func onpushedended(_other: Pawn, _mode: int) -> void:
-	pass
-
 
 func _compute_jump_velocity() -> float:
 	return (-2.0 * jump_height) / maxf(jump_time_to_peak, 0.001)

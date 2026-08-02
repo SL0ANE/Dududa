@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://tlm4spedijs0"]
+
+[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/skull.gd" id="1_m1gvl"]
+[ext_resource type="SpriteFrames" uid="uid://drb5bun2gdg3w" path="res://aseprite/resources/entities/skulls/regular_0.aseprite" id="2_ikli3"]
+
+[node name="Regular0" type="Node2D" unique_id=2088428276]
+script = ExtResource("1_m1gvl")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=565443965]
+sprite_frames = ExtResource("2_ikli3")
+animation = &"Blink"

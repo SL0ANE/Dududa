@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://day2tad1yvxs2"]
+
+[ext_resource type="Script" uid="uid://04j1ofohitwq" path="res://scripts/entities/candle_man.gd" id="1_4ykyb"]
+[ext_resource type="Texture2D" uid="uid://ceuwxap7hkufc" path="res://aseprite/resources/entities/characters/debug/creeper.png" id="2_dskxw"]
+[ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="3_alfa0"]
+[ext_resource type="Script" uid="uid://5jnnbaskc2h7" path="res://scripts/entities/controllers/player_pawn_controller.gd" id="3_dwk1e"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3mno2"]
+radius = 6.0
+height = 32.0
+
+[node name="DeathControlWizard" type="CharacterBody2D" unique_id=1582720686]
+script = ExtResource("1_4ykyb")
+visual_drop_duration = 4.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
+shape = SubResource("CapsuleShape2D_3mno2")
+
+[node name="VisualTopAnchor" type="Node2D" parent="." unique_id=1001536211]
+
+[node name="Sprite2D" type="Sprite2D" parent="VisualTopAnchor" unique_id=488314258]
+texture = ExtResource("2_dskxw")
+
+[node name="Flame" parent="VisualTopAnchor" unique_id=1005148100 instance=ExtResource("3_alfa0")]
+position = Vector2(0, -16)
+
+[node name="Controller" type="Node" parent="." unique_id=973715378]
+script = ExtResource("3_dwk1e")

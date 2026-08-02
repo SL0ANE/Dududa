@@ -25,6 +25,8 @@ const CollisionMetrics = preload("res://scripts/shared/collision_metrics.gd")
 @export var prevent_edge_fall := true
 # Lift edge probe origin above foot level so uphill slopes are still detected as ground.
 @export var ground_check_lift := 0.28
+# Extra near probe ratio used to avoid false edge detection at slope/flat seams.
+@export var ground_check_near_probe_scale := 0.45
 
 @export_group("Jump Decisions")
 # Allow jump when a wall is directly ahead.
@@ -115,7 +117,22 @@ func _resolve_turning_axis(pawn: CharacterBody2D, desired_axis: float) -> float:
 
 
 func _can_try_jump(pawn: CharacterBody2D) -> bool:
-	return pawn.is_on_floor() and _jump_cooldown_left <= 0.0
+	if _jump_cooldown_left > 0.0:
+		return false
+
+	if not (pawn is Pawn):
+		return pawn.is_on_floor()
+
+	var movement_pawn := pawn as Pawn
+	if not movement_pawn.jump_enabled:
+		return false
+
+	# Single jump keeps legacy behavior: only jump from floor.
+	if movement_pawn.max_jump_count <= 1:
+		return pawn.is_on_floor()
+
+	# Multi-jump pawns may request jump in air; Pawn validates remaining jumps.
+	return true
 
 
 func _should_jump_toward_target(pawn: CharacterBody2D, target: Node2D, move_axis: float) -> bool:
@@ -169,16 +186,21 @@ func _would_step_off_edge(pawn: CharacterBody2D, move_axis: float) -> bool:
 	var half_height := _get_collision_half_height_pixels_from_node(pawn)
 	var lift := GameUnits.units_to_pixels(maxf(ground_check_lift, 0.0))
 	var foot_y := pawn.global_position.y + half_height
-	# Start slightly above foot and cast downward further to support uphill/downhill slopes.
-	var from := Vector2(pawn.global_position.x + move_axis * forward, foot_y - lift)
-	var to := from + Vector2(0.0, depth + lift * 2.0)
-	var hit := _ray_cast(pawn, from, to)
-	if hit.is_empty():
-		return true
+	var near_scale := clampf(ground_check_near_probe_scale, 0.0, 1.0)
+	var near_forward := maxf(forward * near_scale, GameUnits.units_to_pixels(horizontal_deadzone))
+	var probe_offsets := [forward, near_forward]
 
-	var normal: Vector2 = hit.get("normal", Vector2.ZERO)
-	if _is_walkable_floor_normal(pawn, normal):
-		return false
+	# Start slightly above foot and cast downward further to support uphill/downhill slopes.
+	for offset in probe_offsets:
+		var from := Vector2(pawn.global_position.x + move_axis * offset, foot_y - lift)
+		var to := from + Vector2(0.0, depth + lift * 2.0)
+		var hit := _ray_cast(pawn, from, to)
+		if hit.is_empty():
+			continue
+
+		var normal: Vector2 = hit.get("normal", Vector2.ZERO)
+		if _is_walkable_floor_normal(pawn, normal):
+			return false
 
 	return true
 
