@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://bn8gjg4lf1yac"]
 
 [ext_resource type="Script" uid="uid://b0tpvxtewnl54" path="res://scripts/entities/note_table.gd" id="1_8oy2l"]
-[ext_resource type="SpriteFrames" uid="uid://d3qf6lnmhfg7r" path="res://aseprite/resources/note_table.aseprite" id="1_hkfyf"]
 [ext_resource type="Texture2D" uid="uid://1iwq12joyw1q" path="res://aseprite/resources/entities/note_tables/frame.png" id="3_6oa72"]
+[ext_resource type="SpriteFrames" uid="uid://2w8d4nrryr01" path="res://aseprite/resources/entities/note_tables/table.aseprite" id="3_qn6hn"]
 [ext_resource type="Texture2D" uid="uid://wahsb80wpxni" path="res://aseprite/resources/entities/note_tables/content/debug/0000.png" id="4_qn6hn"]
 
 [sub_resource type="Animation" id="Animation_06sl7"]
@@ -177,7 +177,7 @@ tracks/1/keys = {
 tracks/2/type = "value"
 tracks/2/imported = false
 tracks/2/enabled = true
-tracks/2/path = NodePath("CanvasGroup:position:x")
+tracks/2/path = NodePath("CanvasGroup:position:y")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
@@ -312,7 +312,7 @@ display_radius_units = 4.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1977434913]
 position = Vector2(0, -16)
-sprite_frames = ExtResource("1_hkfyf")
+sprite_frames = ExtResource("3_qn6hn")
 animation = &"open_intro"
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=173446744]
@@ -326,12 +326,12 @@ anim_player = NodePath("../AnimationPlayer")
 
 [node name="CanvasGroup" type="CanvasGroup" parent="." unique_id=543599070]
 modulate = Color(1, 1, 1, 0)
+z_index = -8
 position = Vector2(0, -48)
 
 [node name="ContentSprite" type="Sprite2D" parent="CanvasGroup" unique_id=746728716]
-z_index = -4
+z_index = -1
 texture = ExtResource("4_qn6hn")
 
 [node name="ContentFrame" type="Sprite2D" parent="CanvasGroup" unique_id=1502698054]
-z_index = -4
 texture = ExtResource("3_6oa72")

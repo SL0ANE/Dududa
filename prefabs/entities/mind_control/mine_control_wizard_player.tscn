@@ -6,7 +6,8 @@
 [node name="MindControlWizardPlayer" unique_id=772498426 instance=ExtResource("1_hwe8m")]
 
 [node name="AnimatedSprite2D" parent="." index="0" unique_id=853470962]
-frame = 0
+animation = &"Idle"
+frame = 1
 
 [node name="Controller" type="Node" parent="." index="4" unique_id=486151749]
 script = ExtResource("2_x7go1")

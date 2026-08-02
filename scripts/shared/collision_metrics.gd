@@ -83,7 +83,8 @@ static func _shape_radius_pixels(shape: Shape2D) -> float:
 		return (shape as RectangleShape2D).size.length() * 0.5
 	if shape is CapsuleShape2D:
 		var capsule := shape as CapsuleShape2D
-		return capsule.radius + capsule.height * 0.5
+		# Use the farthest distance to center under Godot's end-to-end capsule height.
+		return maxf(capsule.radius, capsule.height * 0.5)
 
 	return 0.0
 
@@ -95,6 +96,6 @@ static func _shape_half_height_pixels(shape: Shape2D) -> float:
 		return (shape as RectangleShape2D).size.y * 0.5
 	if shape is CapsuleShape2D:
 		var capsule := shape as CapsuleShape2D
-		return capsule.radius + capsule.height * 0.5
+		return capsule.height * 0.5
 
 	return 0.0

@@ -23,6 +23,8 @@ const CollisionMetrics = preload("res://scripts/shared/collision_metrics.gd")
 @export_group("Platform Checks")
 # Stop before edges where no ground is detected.
 @export var prevent_edge_fall := true
+# Lift edge probe origin above foot level so uphill slopes are still detected as ground.
+@export var ground_check_lift := 0.28
 
 @export_group("Jump Decisions")
 # Allow jump when a wall is directly ahead.
@@ -148,12 +150,14 @@ func _is_wall_ahead(pawn: CharacterBody2D, move_axis: float) -> bool:
 
 	var from_shin := Vector2(pawn.global_position.x, shin_y)
 	var to_shin := from_shin + Vector2(move_axis * ahead_offset, 0.0)
-	if _ray_hit(pawn, from_shin, to_shin):
+	var shin_hit := _ray_cast(pawn, from_shin, to_shin)
+	if _is_blocking_wall_hit(pawn, shin_hit, move_axis):
 		return true
 
 	var from_chest := Vector2(pawn.global_position.x, chest_y)
 	var to_chest := from_chest + Vector2(move_axis * ahead_offset, 0.0)
-	return _ray_hit(pawn, from_chest, to_chest)
+	var chest_hit := _ray_cast(pawn, from_chest, to_chest)
+	return _is_blocking_wall_hit(pawn, chest_hit, move_axis)
 
 
 func _would_step_off_edge(pawn: CharacterBody2D, move_axis: float) -> bool:
@@ -162,20 +166,58 @@ func _would_step_off_edge(pawn: CharacterBody2D, move_axis: float) -> bool:
 
 	var forward := GameUnits.units_to_pixels(_get_ground_check_forward(pawn))
 	var depth := GameUnits.units_to_pixels(_get_ground_check_depth(pawn))
-	var body_radius := CollisionMetrics.get_collision_radius_pixels_from_node(pawn)
-	var foot_y := pawn.global_position.y + body_radius
-	var from := Vector2(pawn.global_position.x + move_axis * forward, foot_y)
-	var to := from + Vector2(0.0, depth)
+	var half_height := _get_collision_half_height_pixels_from_node(pawn)
+	var lift := GameUnits.units_to_pixels(maxf(ground_check_lift, 0.0))
+	var foot_y := pawn.global_position.y + half_height
+	# Start slightly above foot and cast downward further to support uphill/downhill slopes.
+	var from := Vector2(pawn.global_position.x + move_axis * forward, foot_y - lift)
+	var to := from + Vector2(0.0, depth + lift * 2.0)
+	var hit := _ray_cast(pawn, from, to)
+	if hit.is_empty():
+		return true
 
-	return not _ray_hit(pawn, from, to)
+	var normal: Vector2 = hit.get("normal", Vector2.ZERO)
+	if _is_walkable_floor_normal(pawn, normal):
+		return false
+
+	return true
 
 
-func _ray_hit(pawn: CharacterBody2D, from: Vector2, to: Vector2) -> bool:
+func _ray_cast(pawn: CharacterBody2D, from: Vector2, to: Vector2) -> Dictionary:
 	var query := PhysicsRayQueryParameters2D.create(from, to)
 	query.collision_mask = collision_mask
 	query.exclude = [pawn]
-	var result := pawn.get_world_2d().direct_space_state.intersect_ray(query)
-	return not result.is_empty()
+	return pawn.get_world_2d().direct_space_state.intersect_ray(query)
+
+
+func _is_blocking_wall_hit(pawn: CharacterBody2D, hit: Dictionary, move_axis: float) -> bool:
+	if hit.is_empty():
+		return false
+
+	var normal: Vector2 = hit.get("normal", Vector2.ZERO)
+	if normal == Vector2.ZERO:
+		return true
+	if _is_walkable_floor_normal(pawn, normal):
+		return false
+
+	var threshold := sin(_get_max_walkable_slope_angle(pawn))
+	# Treat as wall when slope normal opposes movement beyond pawn's walkable slope limit.
+	return normal.x * move_axis <= -threshold
+
+
+func _is_walkable_floor_normal(pawn: CharacterBody2D, normal: Vector2) -> bool:
+	if normal == Vector2.ZERO:
+		return false
+
+	var n := normal.normalized()
+	var max_angle := _get_max_walkable_slope_angle(pawn)
+	var min_up_dot := cos(max_angle)
+	# up dot normal = Vector2.UP.dot(normal) = -normal.y
+	return -n.y >= min_up_dot
+
+
+func _get_max_walkable_slope_angle(pawn: CharacterBody2D) -> float:
+	return clampf(pawn.floor_max_angle, 0.0, PI * 0.5)
 
 
 func _get_wall_check_distance(pawn: CharacterBody2D) -> float:

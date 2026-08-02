@@ -407,9 +407,8 @@ func _apply_pawn_push_collisions() -> void:
 		_finalize_push_lifecycle(pushing_curr, pushed_curr)
 		return
 
-	var my_half_width := _get_collision_half_width_pixels()
-	var my_half_height := _get_collision_half_height_pixels()
-	if my_half_width <= 0.0 or my_half_height <= 0.0:
+	var my_bounds := _get_collision_bounds_pixels()
+	if my_bounds.size == Vector2.ZERO:
 		_finalize_push_lifecycle(pushing_curr, pushed_curr)
 		return
 
@@ -428,23 +427,35 @@ func _apply_pawn_push_collisions() -> void:
 		if push_ground_only and (not is_on_floor() or not other.is_on_floor()):
 			continue
 
-		var other_half_width := other._get_collision_half_width_pixels()
-		var other_half_height := other._get_collision_half_height_pixels()
-		if other_half_width <= 0.0 or other_half_height <= 0.0:
+		my_bounds = _get_collision_bounds_pixels()
+		if my_bounds.size == Vector2.ZERO:
 			continue
 
-		var delta_x := other.global_position.x - global_position.x
-		var delta_y := other.global_position.y - global_position.y
-		var center_distance_x := absf(delta_x)
-		var center_distance_y := absf(delta_y)
-		var overlap_y := my_half_height + other_half_height - center_distance_y
+		var other_bounds := other._get_collision_bounds_pixels()
+		if other_bounds.size == Vector2.ZERO:
+			continue
+
+		var my_min_y := my_bounds.position.y
+		var my_max_y := my_bounds.position.y + my_bounds.size.y
+		var other_min_y := other_bounds.position.y
+		var other_max_y := other_bounds.position.y + other_bounds.size.y
+		var overlap_y := minf(my_max_y, other_max_y) - maxf(my_min_y, other_min_y)
 		if overlap_y <= 0.0:
 			continue
 
+		var my_min_x := my_bounds.position.x
+		var my_max_x := my_bounds.position.x + my_bounds.size.x
+		var other_min_x := other_bounds.position.x
+		var other_max_x := other_bounds.position.x + other_bounds.size.x
+		var overlap_x := minf(my_max_x, other_max_x) - maxf(my_min_x, other_min_x)
 		var padding_px := GameUnits.units_to_pixels(maxf(push_contact_padding, 0.0))
-		var overlap := my_half_width + other_half_width + padding_px - center_distance_x
+		var overlap := overlap_x + padding_px
 		if overlap <= 0.0:
 			continue
+
+		var my_center_x := my_bounds.position.x + my_bounds.size.x * 0.5
+		var other_center_x := other_bounds.position.x + other_bounds.size.x * 0.5
+		var delta_x := other_center_x - my_center_x
 
 		var push_dir := signf(delta_x)
 		if is_zero_approx(push_dir):
@@ -474,6 +485,50 @@ func _apply_pawn_push_collisions() -> void:
 		_register_pushed_contact(pushed_curr, other, pair_mode, -push_dir, overlap_units)
 
 	_finalize_push_lifecycle(pushing_curr, pushed_curr)
+
+
+func _get_collision_bounds_pixels() -> Rect2:
+	var has_shape := false
+	var min_x := 0.0
+	var max_x := 0.0
+	var min_y := 0.0
+	var max_y := 0.0
+
+	for child in find_children("*", "CollisionShape2D", true, false):
+		if not (child is CollisionShape2D):
+			continue
+
+		var cs := child as CollisionShape2D
+		if cs.disabled or cs.shape == null:
+			continue
+
+		var center := cs.global_position
+		var half_extents := _shape_half_extents_pixels(cs.shape)
+		if half_extents == Vector2.ZERO:
+			continue
+
+		var shape_min_x := center.x - half_extents.x
+		var shape_max_x := center.x + half_extents.x
+		var shape_min_y := center.y - half_extents.y
+		var shape_max_y := center.y + half_extents.y
+
+		if not has_shape:
+			min_x = shape_min_x
+			max_x = shape_max_x
+			min_y = shape_min_y
+			max_y = shape_max_y
+			has_shape = true
+			continue
+
+		min_x = minf(min_x, shape_min_x)
+		max_x = maxf(max_x, shape_max_x)
+		min_y = minf(min_y, shape_min_y)
+		max_y = maxf(max_y, shape_max_y)
+
+	if not has_shape:
+		return Rect2(global_position, Vector2.ZERO)
+
+	return Rect2(Vector2(min_x, min_y), Vector2(max_x - min_x, max_y - min_y))
 
 
 func _process_move_lifecycle(current_velocity: float, input_axis: float, grounded: bool) -> void:
@@ -674,9 +729,24 @@ func _shape_half_height_pixels(shape: Shape2D) -> float:
 		return (shape as RectangleShape2D).size.y * 0.5
 	if shape is CapsuleShape2D:
 		var capsule := shape as CapsuleShape2D
-		return capsule.radius + capsule.height * 0.5
+		# In Godot, CapsuleShape2D.height is the full end-to-end height.
+		return capsule.height * 0.5
 
 	return 0.0
+
+
+func _shape_half_extents_pixels(shape: Shape2D) -> Vector2:
+	if shape is CircleShape2D:
+		var circle := shape as CircleShape2D
+		return Vector2(circle.radius, circle.radius)
+	if shape is RectangleShape2D:
+		var rect := shape as RectangleShape2D
+		return rect.size * 0.5
+	if shape is CapsuleShape2D:
+		var capsule := shape as CapsuleShape2D
+		return Vector2(capsule.radius, capsule.height * 0.5)
+
+	return Vector2.ZERO
 
 
 func _set_collision_exception_with(other: PhysicsBody2D, disabled: bool) -> void:

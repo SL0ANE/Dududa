@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://dxdrlah0513km" path="res://aseprite/resources/vfx/flame/3.png" id="4_iwygs"]
 [ext_resource type="Texture2D" uid="uid://df5dj30drxbx" path="res://aseprite/resources/vfx/flame/4.png" id="5_i1pn2"]
 [ext_resource type="Texture2D" uid="uid://el27gxolorpe" path="res://aseprite/resources/vfx/flame/5.png" id="6_0xvdx"]
+[ext_resource type="Shader" uid="uid://p0vtc8r7q5it" path="res://shaders/particles/pixelperfect.gdshader" id="8_dx31a"]
 
 [sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_3mno2"]
 particles_animation = true
@@ -14,83 +15,133 @@ particles_anim_h_frames = 7
 particles_anim_v_frames = 1
 particles_anim_loop = false
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_61www"]
-particle_flag_disable_z = true
-direction = Vector3(0, -1, 0)
-spread = 8.0
-initial_velocity_min = 16.0
-initial_velocity_max = 32.0
-gravity = Vector3(0, 8, 0)
-anim_speed_min = 1.25
-anim_speed_max = 1.25
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_53i7n"]
+shader = ExtResource("8_dx31a")
+shader_parameter/direction = Vector3(0, -1, 0)
+shader_parameter/spread = 10.0
+shader_parameter/flatness = 0.0
+shader_parameter/inherit_emitter_velocity_ratio = 0.0
+shader_parameter/initial_linear_velocity_min = 16.0
+shader_parameter/initial_linear_velocity_max = 32.0
+shader_parameter/directional_velocity_min = 1.0
+shader_parameter/directional_velocity_max = 1.0
+shader_parameter/angular_velocity_min = 0.0
+shader_parameter/angular_velocity_max = 0.0
+shader_parameter/orbit_velocity_min = 0.0
+shader_parameter/orbit_velocity_max = 0.0
+shader_parameter/radial_velocity_min = 0.0
+shader_parameter/radial_velocity_max = 0.0
+shader_parameter/linear_accel_min = 0.0
+shader_parameter/linear_accel_max = 0.0
+shader_parameter/radial_accel_min = 0.0
+shader_parameter/radial_accel_max = 0.0
+shader_parameter/tangent_accel_min = 0.0
+shader_parameter/tangent_accel_max = 0.0
+shader_parameter/damping_min = 0.0
+shader_parameter/damping_max = 0.0
+shader_parameter/initial_angle_min = 0.0
+shader_parameter/initial_angle_max = 0.0
+shader_parameter/scale_min = 1.0
+shader_parameter/scale_max = 1.0
+shader_parameter/hue_variation_min = 0.0
+shader_parameter/hue_variation_max = 0.0
+shader_parameter/anim_speed_min = 2.0
+shader_parameter/anim_speed_max = 2.0
+shader_parameter/anim_offset_min = 0.0
+shader_parameter/anim_offset_max = 0.0
+shader_parameter/lifetime_randomness = 0.0
+shader_parameter/emission_shape_offset = Vector3(0, 0, 0)
+shader_parameter/emission_shape_scale = Vector3(1, 1, 1)
+shader_parameter/velocity_pivot = Vector3(0, 0, 0)
+shader_parameter/color_value = Color(1, 1, 1, 1)
+shader_parameter/gravity = Vector3(0, -8, 0)
 
-[node name="Flame" type="Node2D" unique_id=1780481466]
+[node name="Flame" type="CanvasGroup" unique_id=1005148100]
+z_index = -4
 
 [node name="6" type="GPUParticles2D" parent="." unique_id=1398959266]
+z_index = -1
 material = SubResource("CanvasItemMaterial_3mno2")
-amount = 16
+amount = 32
 texture = ExtResource("1_0xvdx")
+lifetime = 2.0
 preprocess = 0.4
-randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="5" type="GPUParticles2D" parent="." unique_id=628132030]
+[node name="5" type="GPUParticles2D" parent="." unique_id=195404951]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
+amount = 2
 texture = ExtResource("6_0xvdx")
+lifetime = 2.0
 preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="4" type="GPUParticles2D" parent="." unique_id=958515511]
+[node name="4" type="GPUParticles2D" parent="." unique_id=200493342]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
+amount = 2
 texture = ExtResource("5_i1pn2")
-preprocess = 0.32
+lifetime = 2.0
+preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="3" type="GPUParticles2D" parent="." unique_id=733890924]
+[node name="3" type="GPUParticles2D" parent="." unique_id=483913715]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
-amount = 2
+amount = 1
+amount_ratio = 0.5
 texture = ExtResource("4_iwygs")
-preprocess = 0.24
+lifetime = 2.0
+preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="2" type="GPUParticles2D" parent="." unique_id=1775531694]
+[node name="2" type="GPUParticles2D" parent="." unique_id=2023652179]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
-amount = 2
+amount = 1
+amount_ratio = 0.5
 texture = ExtResource("3_2gaaw")
-preprocess = 0.16
+lifetime = 2.0
+preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="1" type="GPUParticles2D" parent="." unique_id=1434335569]
+[node name="1" type="GPUParticles2D" parent="." unique_id=1092203236]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
 amount = 1
-amount_ratio = 0.5
+amount_ratio = 0.25
 texture = ExtResource("2_5w0m3")
-preprocess = 0.08
+lifetime = 2.0
+preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
 
-[node name="0" type="GPUParticles2D" parent="." unique_id=1188508344]
+[node name="0" type="GPUParticles2D" parent="." unique_id=377798556]
+visible = false
 material = SubResource("CanvasItemMaterial_3mno2")
 amount = 1
-amount_ratio = 0.5
+amount_ratio = 0.25
 texture = ExtResource("1_0a3ek")
+lifetime = 2.0
+preprocess = 0.4
 randomness = 0.5
+fixed_fps = 60
 collision_base_size = 0.0
-draw_order = 2
-process_material = SubResource("ParticleProcessMaterial_61www")
+process_material = SubResource("ShaderMaterial_53i7n")
