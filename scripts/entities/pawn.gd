@@ -99,6 +99,8 @@ enum PawnCollisionMode {
 @export_group("Nodes")
 # Relative path to controller node used to build commands.
 @export var controller_path: NodePath
+# Relative path to primary collision shape used by height-based subclasses.
+@export var collision_shape_path: NodePath = ^"CollisionShape2D"
 # Relative path to AnimationTree node.
 @export var animation_tree_path: NodePath = ^"AnimationTree"
 # Optional sprite node path. Empty is allowed for multi-part visuals.
@@ -109,6 +111,7 @@ enum PawnCollisionMode {
 var _facing := 1
 
 var _controller: PawnController
+var _collider: CollisionShape2D
 # Driven velocity is produced by the pawn movement model (input, jump profile).
 var _driven_velocity := Vector2.ZERO
 # External velocity is produced by gameplay systems (hit, wind, explosion).
@@ -135,6 +138,8 @@ func _ready() -> void:
 	_last_pawn_collision_mode = pawn_collision_mode
 	call_deferred("_refresh_all_pawn_collisions")
 
+	_collider = _resolve_movable_collider()
+	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
 	# if _animation_tree:
 		# _animation_tree.active = true
@@ -227,6 +232,94 @@ func _resolve_sprite() -> AnimatedSprite2D:
 		return node
 
 	return null
+
+
+func _resolve_movable_collider() -> CollisionShape2D:
+	if not collision_shape_path.is_empty():
+		var path_node := get_node_or_null(collision_shape_path)
+		if path_node is CollisionShape2D:
+			return path_node as CollisionShape2D
+
+	for child in find_children("*", "CollisionShape2D", true, false):
+		if child is CollisionShape2D:
+			var cs := child as CollisionShape2D
+			if not cs.disabled and cs.shape != null:
+				return cs
+
+	return null
+
+
+func _get_movable_collider() -> CollisionShape2D:
+	if _collider and is_instance_valid(_collider):
+		return _collider
+
+	_collider = _resolve_movable_collider()
+	return _collider
+
+
+func _ensure_collider_bottom_aligned_on_spawn() -> void:
+	var collision_shape := _get_movable_collider()
+	if collision_shape == null:
+		return
+	if collision_shape.shape == null:
+		return
+
+	var half_height_px := _shape_half_height_pixels(collision_shape.shape)
+	if half_height_px <= 0.0:
+		return
+
+	var bottom_local_y := collision_shape.position.y + half_height_px
+	if is_equal_approx(bottom_local_y, 0.0):
+		return
+
+	push_warning("Pawn: CollisionShape2D bottom is not aligned to Pawn origin; auto-correcting on spawn.")
+	collision_shape.position.y = -half_height_px
+
+
+func _get_collider_height_px() -> float:
+	var collision_shape := _get_movable_collider()
+	if collision_shape == null:
+		return 0.0
+	if collision_shape.shape == null:
+		return 0.0
+
+	var shape := collision_shape.shape
+	if shape is RectangleShape2D:
+		return (shape as RectangleShape2D).size.y
+	if shape is CapsuleShape2D:
+		var capsule := shape as CapsuleShape2D
+		return capsule.height
+
+	return 0.0
+
+
+func _get_collider_height_units() -> float:
+	return GameUnits.pixels_to_units(_get_collider_height_px())
+
+
+func _set_collider_height_units(new_height_units: float) -> void:
+	var collision_shape := _get_movable_collider()
+	if collision_shape == null:
+		return
+	if collision_shape.shape == null:
+		return
+
+	var new_height_px := GameUnits.units_to_pixels(new_height_units)
+	var shape := collision_shape.shape
+	var half_height_px := 0.0
+	if shape is RectangleShape2D:
+		var rect := shape as RectangleShape2D
+		rect.size.y = maxf(new_height_px, 1.0)
+		half_height_px = rect.size.y * 0.5
+	elif shape is CapsuleShape2D:
+		var capsule := shape as CapsuleShape2D
+		capsule.height = maxf(new_height_px, 0.0)
+		half_height_px = capsule.height * 0.5
+	else:
+		return
+
+	# Keep collider bottom aligned to Pawn local origin (y = 0).
+	collision_shape.position.y = -half_height_px
 
 
 func _apply_horizontal_velocity(move_axis: float, delta: float) -> void:

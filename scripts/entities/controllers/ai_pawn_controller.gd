@@ -57,7 +57,9 @@ func build_command(pawn: CharacterBody2D, delta: float) -> Dictionary:
 	if target == null:
 		return PawnController.default_command()
 
-	var to_target_now := target.global_position - pawn.global_position
+	var pawn_center := _get_collision_reference_position(pawn)
+	var target_center := _get_collision_reference_position(target)
+	var to_target_now := target_center - pawn_center
 	var desired_axis := _resolve_look_axis(to_target_now.x)
 
 	var edge_distance_pixels := _compute_edge_distance_pixels(pawn, target)
@@ -141,7 +143,9 @@ func _should_jump_toward_target(pawn: CharacterBody2D, target: Node2D, move_axis
 	if _is_target_airborne(target):
 		return false
 
-	var delta_units := GameUnits.pixels_to_units_v2(target.global_position - pawn.global_position)
+	var pawn_center := _get_collision_reference_position(pawn)
+	var target_center := _get_collision_reference_position(target)
+	var delta_units := GameUnits.pixels_to_units_v2(target_center - pawn_center)
 	var target_above := delta_units.y < -_get_jump_target_height(pawn)
 	var target_on_same_side := signf(delta_units.x) == signf(move_axis) and absf(delta_units.x) > horizontal_deadzone
 	return target_above and target_on_same_side
@@ -159,19 +163,20 @@ func _is_wall_ahead(pawn: CharacterBody2D, move_axis: float) -> bool:
 
 	var ahead_offset := GameUnits.units_to_pixels(_get_wall_check_distance(pawn))
 	var half_height := _get_collision_half_height_pixels_from_node(pawn)
+	var pawn_center := _get_collision_reference_position(pawn)
 
 	# Probe around shin/chest levels. This avoids false positives from ceilings
 	# while still detecting low and mid-height obstacles that require a jump.
-	var shin_y := pawn.global_position.y + half_height * 0.35
-	var chest_y := pawn.global_position.y - half_height * 0.25
+	var shin_y := pawn_center.y + half_height * 0.35
+	var chest_y := pawn_center.y - half_height * 0.25
 
-	var from_shin := Vector2(pawn.global_position.x, shin_y)
+	var from_shin := Vector2(pawn_center.x, shin_y)
 	var to_shin := from_shin + Vector2(move_axis * ahead_offset, 0.0)
 	var shin_hit := _ray_cast(pawn, from_shin, to_shin)
 	if _is_blocking_wall_hit(pawn, shin_hit, move_axis):
 		return true
 
-	var from_chest := Vector2(pawn.global_position.x, chest_y)
+	var from_chest := Vector2(pawn_center.x, chest_y)
 	var to_chest := from_chest + Vector2(move_axis * ahead_offset, 0.0)
 	var chest_hit := _ray_cast(pawn, from_chest, to_chest)
 	return _is_blocking_wall_hit(pawn, chest_hit, move_axis)
@@ -184,15 +189,16 @@ func _would_step_off_edge(pawn: CharacterBody2D, move_axis: float) -> bool:
 	var forward := GameUnits.units_to_pixels(_get_ground_check_forward(pawn))
 	var depth := GameUnits.units_to_pixels(_get_ground_check_depth(pawn))
 	var half_height := _get_collision_half_height_pixels_from_node(pawn)
+	var pawn_center := _get_collision_reference_position(pawn)
 	var lift := GameUnits.units_to_pixels(maxf(ground_check_lift, 0.0))
-	var foot_y := pawn.global_position.y + half_height
+	var foot_y := pawn_center.y + half_height
 	var near_scale := clampf(ground_check_near_probe_scale, 0.0, 1.0)
 	var near_forward := maxf(forward * near_scale, GameUnits.units_to_pixels(horizontal_deadzone))
 	var probe_offsets := [forward, near_forward]
 
 	# Start slightly above foot and cast downward further to support uphill/downhill slopes.
 	for offset in probe_offsets:
-		var from := Vector2(pawn.global_position.x + move_axis * offset, foot_y - lift)
+		var from := Vector2(pawn_center.x + move_axis * offset, foot_y - lift)
 		var to := from + Vector2(0.0, depth + lift * 2.0)
 		var hit := _ray_cast(pawn, from, to)
 		if hit.is_empty():
@@ -299,6 +305,7 @@ func _find_nearest_target_in_group(pawn: CharacterBody2D) -> Node2D:
 
 	var nearest: Node2D
 	var best_distance := INF
+	var pawn_center := _get_collision_reference_position(pawn)
 
 	for node in get_tree().get_nodes_in_group(target_group):
 		if node == pawn:
@@ -307,7 +314,8 @@ func _find_nearest_target_in_group(pawn: CharacterBody2D) -> Node2D:
 			continue
 
 		var target := node as Node2D
-		var d := pawn.global_position.distance_squared_to(target.global_position)
+		var target_center := _get_collision_reference_position(target)
+		var d := pawn_center.distance_squared_to(target_center)
 		if d < best_distance:
 			best_distance = d
 			nearest = target
@@ -321,3 +329,7 @@ func _compute_edge_distance_pixels(a: CharacterBody2D, b: Node2D) -> float:
 
 func _get_collision_half_height_pixels_from_node(node: Node) -> float:
 	return CollisionMetrics.get_collision_half_height_pixels_from_node(node)
+
+
+func _get_collision_reference_position(node: Node) -> Vector2:
+	return CollisionMetrics.get_collision_reference_position_from_node(node)

@@ -2,8 +2,37 @@ extends RefCounted
 class_name CollisionMetrics
 
 
+static func get_collision_reference_position_from_node(node: Node) -> Vector2:
+	if node == null:
+		return Vector2.ZERO
+
+	var count := 0
+	var sum := Vector2.ZERO
+
+	for child in node.find_children("*", "CollisionShape2D", true, false):
+		if not (child is CollisionShape2D):
+			continue
+
+		var cs := child as CollisionShape2D
+		if cs.disabled or cs.shape == null:
+			continue
+
+		sum += cs.global_position
+		count += 1
+
+	if count > 0:
+		return sum / float(count)
+
+	if node is Node2D:
+		return (node as Node2D).global_position
+
+	return Vector2.ZERO
+
+
 static func compute_edge_distance_pixels(a: Node2D, b: Node2D) -> float:
-	var center_distance := a.global_position.distance_to(b.global_position)
+	var a_center := get_collision_reference_position_from_node(a)
+	var b_center := get_collision_reference_position_from_node(b)
+	var center_distance := a_center.distance_to(b_center)
 	var radius_sum := get_collision_radius_pixels_from_node(a) + get_collision_radius_pixels_from_node(b)
 	return maxf(center_distance - radius_sum, 0.0)
 
@@ -71,9 +100,7 @@ static func get_collision_half_height_pixels_from_node(node: Node) -> float:
 
 
 static func _get_node_origin(node: Node) -> Vector2:
-	if node is Node2D:
-		return (node as Node2D).global_position
-	return Vector2.ZERO
+	return get_collision_reference_position_from_node(node)
 
 
 static func _shape_radius_pixels(shape: Shape2D) -> float:
