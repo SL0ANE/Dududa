@@ -173,13 +173,13 @@ func _physics_process(delta: float) -> void:
 	var can_jump := has_jumps_left and (can_ground_jump or not was_on_ground)
 	if jump_pressed and can_jump:
 		var jump_velocity := _compute_jump_velocity()
-		# _driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
+		_driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
 		_air_phase_time = 0.0
 		_was_rising = true
 		_coyote_time_left = 0.0
 		_jump_count_since_ground += 1
 		on_jump(jump_velocity)
-		# jumped.emit(jump_velocity)
+		jumped.emit(jump_velocity)
 
 	_apply_vertical_velocity(delta, was_on_ground)
 	_apply_horizontal_velocity(move_axis, delta)

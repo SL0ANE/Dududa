@@ -11,18 +11,21 @@ height = 32.0
 
 [node name="DeathControlWizard" type="CharacterBody2D" unique_id=1582720686]
 script = ExtResource("1_4ykyb")
-visual_drop_duration = 4.0
+visual_drop_duration = 0.25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
 shape = SubResource("CapsuleShape2D_3mno2")
 
-[node name="VisualTopAnchor" type="Node2D" parent="." unique_id=1001536211]
+[node name="VisualScaleRoot" type="Node2D" parent="." unique_id=1001536211]
 
-[node name="Sprite2D" type="Sprite2D" parent="VisualTopAnchor" unique_id=488314258]
+[node name="Sprite2D" type="Sprite2D" parent="VisualScaleRoot" unique_id=488314258]
 texture = ExtResource("2_dskxw")
 
-[node name="Flame" parent="VisualTopAnchor" unique_id=1005148100 instance=ExtResource("3_alfa0")]
+[node name="VisualPositionRoot" type="Node2D" parent="." unique_id=947227969]
 position = Vector2(0, -16)
+
+[node name="Flame" parent="VisualPositionRoot" unique_id=1005148100 instance=ExtResource("3_alfa0")]
+position = Vector2(0, -4)
 
 [node name="Controller" type="Node" parent="." unique_id=973715378]
 script = ExtResource("3_dwk1e")
