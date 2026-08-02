@@ -143,11 +143,15 @@ func _should_jump_toward_target(pawn: CharacterBody2D, target: Node2D, move_axis
 	if _is_target_airborne(target):
 		return false
 
+	var pawn_bottom_y := _get_collision_bottom_y_pixels_from_node(pawn)
+	var target_bottom_y := _get_collision_bottom_y_pixels_from_node(target)
+	var vertical_delta_units := GameUnits.pixels_to_units(target_bottom_y - pawn_bottom_y)
+	var target_above := vertical_delta_units < -_get_jump_target_height(pawn)
+
 	var pawn_center := _get_collision_reference_position(pawn)
 	var target_center := _get_collision_reference_position(target)
-	var delta_units := GameUnits.pixels_to_units_v2(target_center - pawn_center)
-	var target_above := delta_units.y < -_get_jump_target_height(pawn)
-	var target_on_same_side := signf(delta_units.x) == signf(move_axis) and absf(delta_units.x) > horizontal_deadzone
+	var delta_x_units := GameUnits.pixels_to_units(target_center.x - pawn_center.x)
+	var target_on_same_side := signf(delta_x_units) == signf(move_axis) and absf(delta_x_units) > horizontal_deadzone
 	return target_above and target_on_same_side
 
 
@@ -220,6 +224,10 @@ func _ray_cast(pawn: CharacterBody2D, from: Vector2, to: Vector2) -> Dictionary:
 
 func _is_blocking_wall_hit(pawn: CharacterBody2D, hit: Dictionary, move_axis: float) -> bool:
 	if hit.is_empty():
+		return false
+
+	var collider_obj = hit.get("collider", null)
+	if collider_obj is Node and (collider_obj as Node).is_in_group(&"pawn"):
 		return false
 
 	var normal: Vector2 = hit.get("normal", Vector2.ZERO)
@@ -333,3 +341,9 @@ func _get_collision_half_height_pixels_from_node(node: Node) -> float:
 
 func _get_collision_reference_position(node: Node) -> Vector2:
 	return CollisionMetrics.get_collision_reference_position_from_node(node)
+
+
+func _get_collision_bottom_y_pixels_from_node(node: Node) -> float:
+	var center := _get_collision_reference_position(node)
+	var half_height := _get_collision_half_height_pixels_from_node(node)
+	return center.y + half_height

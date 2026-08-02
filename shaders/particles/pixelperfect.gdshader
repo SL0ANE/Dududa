@@ -336,8 +336,11 @@ void process() {
 	// Turbulence before limiting.
 	vec3 final_velocity = controlled_displacement + USERDATA1.xyz;
 
-	final_velocity.z = 0.0;
+	if(COLLIDED) {
+		final_velocity.xy = reflect(4.0 * final_velocity.xy, COLLISION_NORMAL.xy);
+	}
 
+	final_velocity.z = 0.0;
 	vec2 xy_pos = vec2(TRANSFORM[3].z, USERDATA1.z);
 	VELOCITY = final_velocity;
 	xy_pos += VELOCITY.xy * DELTA;
