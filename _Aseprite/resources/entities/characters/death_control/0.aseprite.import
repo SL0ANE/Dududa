@@ -1,0 +1,14 @@
+[remap]
+
+importer="aseprite_wizard.plugin.noop"
+type="PackedDataContainer"
+uid="uid://uwwwli8n4m4x"
+path="res://.godot/imported/0.aseprite-7c09e38a0ef84c651cdaaa880e2bfa9d.res"
+
+[deps]
+
+source_file="res://Aseprite/resources/entities/characters/death_control/0.aseprite"
+dest_files=["res://.godot/imported/0.aseprite-7c09e38a0ef84c651cdaaa880e2bfa9d.res"]
+
+[params]
+
