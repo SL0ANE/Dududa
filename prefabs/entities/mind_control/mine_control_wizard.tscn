@@ -4,6 +4,7 @@
 [ext_resource type="SpriteFrames" uid="uid://bqwxeqmuuc3r3" path="res://aseprite/resources/entities/characters/mind_control/0.aseprite" id="1_nhpvn"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://2kvpuab4vqa5" path="res://animations/standard_pawn.tres" id="3_hreaw"]
 [ext_resource type="Script" uid="uid://dgks5in2lbqg7" path="res://scripts/entities/pawn_animation_tree_bridge.gd" id="3_jgdjt"]
+[ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="5_qoqhy"]
 
 [sub_resource type="Animation" id="Animation_hreaw"]
 length = 0.2
@@ -390,3 +391,8 @@ shape = SubResource("CapsuleShape2D_3mno2")
 
 [node name="AnimationBridge" type="Node2D" parent="." unique_id=276961455]
 script = ExtResource("3_jgdjt")
+
+[node name="SoundEffects" type="Node2D" parent="." unique_id=1608406681]
+
+[node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=312691294]
+stream = ExtResource("5_qoqhy")

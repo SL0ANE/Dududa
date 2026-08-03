@@ -305,7 +305,7 @@ transitions = ["shut_intro", "shut_idle", SubResource("AnimationNodeStateMachine
 graph_offset = Vector2(-47, -12)
 
 [node name="NoteTable" type="Node2D" unique_id=2030372289]
-z_index = -256
+z_index = -64
 script = ExtResource("1_8oy2l")
 content_texture = ExtResource("4_qn6hn")
 display_radius_units = 4.0

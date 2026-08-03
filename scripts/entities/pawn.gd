@@ -96,6 +96,10 @@ enum PawnCollisionMode {
 # Maximum downward driven velocity (units/s) still eligible for manual floor snap.
 @export var floor_snap_max_fall_speed := 2.2
 
+@export_group("Audio")
+# Relative path to jump sound player node.
+@export var jump_sfx_player_path: NodePath = ^"SoundEffects/SFXJump"
+
 @export_group("Nodes")
 # Relative path to controller node used to build commands.
 @export var controller_path: NodePath
@@ -112,6 +116,7 @@ var _facing := 1
 
 var _controller: PawnController
 var _collider: CollisionShape2D
+var _jump_sfx_player: AudioStreamPlayer2D
 # Driven velocity is produced by the pawn movement model (input, jump profile).
 var _driven_velocity := Vector2.ZERO
 # External velocity is produced by gameplay systems (hit, wind, explosion).
@@ -145,6 +150,11 @@ func _ready() -> void:
 	_collider = _resolve_movable_collider()
 	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
+	_jump_sfx_player = get_node_or_null(jump_sfx_player_path) as AudioStreamPlayer2D
+	# Ensure gravity/jump math has valid profile values even before first jump.
+	_jump_height_on_jump = jump_height
+	_jump_time_to_peak_on_jump = jump_time_to_peak
+	_jump_time_to_fall_on_jump = jump_time_to_fall
 	# if _animation_tree:
 		# _animation_tree.active = true
 
@@ -855,9 +865,28 @@ func set_external_velocity(velocity_value: Vector2) -> void:
 	_external_velocity = GameUnits.units_to_pixels_v2(velocity_value)
 
 
+func _play_jump_sfx(stream_override: AudioStream = null) -> void:
+	if _jump_sfx_player == null:
+		return
+
+	var stream_to_play := stream_override
+	if stream_to_play == null:
+		stream_to_play = _jump_sfx_player.stream
+	if stream_to_play == null:
+		return
+
+	if _jump_sfx_player.stream != stream_to_play:
+		_jump_sfx_player.stream = stream_to_play
+	_jump_sfx_player.play()
+
+
+func _get_jump_sfx_stream_for_jump(_jump_velocity: float) -> AudioStream:
+	return null
+
+
 # Hooks for subclass extension.
-func on_jump(_jump_velocity: float) -> void:
-	pass
+func on_jump(jump_velocity: float) -> void:
+	_play_jump_sfx(_get_jump_sfx_stream_for_jump(jump_velocity))
 
 
 func on_turn(_old_facing: int, _new_facing: int) -> void:
@@ -912,12 +941,23 @@ func on_pushed_ended(_other: Pawn, _mode: int) -> void:
 	pass
 
 func _compute_jump_velocity() -> float:
-	return (-2.0 * _jump_height_on_jump) / maxf(_jump_time_to_peak_on_jump, 0.001)
+	var height := _jump_height_on_jump
+	if is_zero_approx(height):
+		height = jump_height
+	var time_to_peak := _jump_time_to_peak_on_jump
+	if time_to_peak <= 0.0:
+		time_to_peak = jump_time_to_peak
+	return (-2.0 * height) / maxf(time_to_peak, 0.001)
 
 
 func _compute_gravity(is_rising: bool) -> float:
+	var height := _jump_height_on_jump
+	if is_zero_approx(height):
+		height = jump_height
 	var phase_time := _jump_time_to_peak_on_jump if is_rising else _jump_time_to_fall_on_jump
-	return (2.0 * _jump_height_on_jump) / pow(maxf(phase_time, 0.001), 2.0)
+	if phase_time <= 0.0:
+		phase_time = jump_time_to_peak if is_rising else jump_time_to_fall
+	return (2.0 * height) / pow(maxf(phase_time, 0.001), 2.0)
 
 
 func _sample_curve(curve: Curve, x: float, fallback: float) -> float:

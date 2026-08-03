@@ -1,6 +1,18 @@
 extends Pawn
 
 
+const JUMP_SFX_STREAMS: Array[AudioStream] = [
+	preload("res://sound_effects/character/jump/0.wav"),
+	preload("res://sound_effects/character/jump/1.wav"),
+	preload("res://sound_effects/character/jump/2.wav"),
+	preload("res://sound_effects/character/jump/3.wav"),
+	preload("res://sound_effects/character/jump/4.wav"),
+	preload("res://sound_effects/character/jump/5.wav"),
+	preload("res://sound_effects/character/jump/6.wav"),
+	preload("res://sound_effects/character/jump/7.wav"),
+]
+
+
 @export_group("Drop Settings")
 # Current remaining shrink steps.
 @export var drop_count: int = 6
@@ -69,6 +81,8 @@ func _ready() -> void:
 
 
 func on_jump(_jump_velocity: float) -> void:
+	super.on_jump(_jump_velocity)
+
 	if height_per_drop <= 0.0:
 		return
 	if drop_count <= 0:
@@ -76,6 +90,19 @@ func on_jump(_jump_velocity: float) -> void:
 
 	# During gameplay keep the top edge fixed while shrinking.
 	_apply_drop(drop_count - 1, true, true)
+
+
+func _get_jump_sfx_stream_for_jump(_jump_velocity: float) -> AudioStream:
+	var sfx_index := _map_drop_count_to_jump_sfx_index(drop_count)
+	if sfx_index < 0 or sfx_index >= JUMP_SFX_STREAMS.size():
+		return null
+
+	return JUMP_SFX_STREAMS[sfx_index]
+
+
+func _map_drop_count_to_jump_sfx_index(remaining_drop_count: int) -> int:
+	# 0 drop -> 7.wav, 7+ drop -> 0.wav
+	return clampi(7 - remaining_drop_count, 0, 7)
 
 
 func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visual: bool) -> void:
