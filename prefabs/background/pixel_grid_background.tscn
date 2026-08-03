@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://tltu20ljw8ss"]
 
-[ext_resource type="Shader" uid="uid://b577225427r8i" path="res://scripts/rendering/grid_background/pixelart_grid_parallax_2d.gdshader" id="1_gx7nq"]
+[ext_resource type="Shader" uid="uid://b577225427r8i" path="res://shaders/backgrounds/pixelart_grid_parallax_2d.gdshader" id="1_gx7nq"]
 [ext_resource type="Script" uid="uid://cygshrs0bsqu0" path="res://scripts/rendering/grid_background/pixel_grid_background.gd" id="2_fvu6k"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_y5qvc"]

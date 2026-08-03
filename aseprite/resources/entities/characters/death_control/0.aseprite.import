@@ -1,14 +1,21 @@
 [remap]
 
-importer="aseprite_wizard.plugin.noop"
-type="PackedDataContainer"
+importer="aseprite_wizard.plugin.spriteframes"
+type="SpriteFrames"
 uid="uid://uwwwli8n4m4x"
-path="res://.godot/imported/0.aseprite-7c09e38a0ef84c651cdaaa880e2bfa9d.res"
+path="res://.godot/imported/0.aseprite-582499de57bdc6f1d43aca049ad2291e.res"
 
 [deps]
 
-source_file="res://Aseprite/resources/entities/characters/death_control/0.aseprite"
-dest_files=["res://.godot/imported/0.aseprite-7c09e38a0ef84c651cdaaa880e2bfa9d.res"]
+source_file="res://aseprite/resources/entities/characters/death_control/0.aseprite"
+dest_files=["res://.godot/imported/0.aseprite-582499de57bdc6f1d43aca049ad2291e.res"]
 
 [params]
 
+layer/exclude_layers_pattern=""
+layer/only_visible_layers=false
+sheet/sheet_type="packed"
+sheet/sheet_columns=12
+sheet/frame_padding=0
+sheet/scale=1
+animation/round_fps=true

@@ -1,21 +1,21 @@
 [remap]
 
-importer="aseprite_wizard.plugin.static-texture"
-type="PortableCompressedTexture2D"
+importer="aseprite_wizard.plugin.spriteframes"
+type="SpriteFrames"
 uid="uid://co6v1rqxfhxb6"
-path="res://.godot/imported/0.aseprite-3b24d65ac5de6e5db711a4ced8ef83b4.res"
+path="res://.godot/imported/0.aseprite-ca9ab3246245cd02b855cda1cbbab91f.res"
 
 [deps]
 
-source_file="res://Aseprite/resources/vfx/flame/0.aseprite"
-dest_files=["res://.godot/imported/0.aseprite-3b24d65ac5de6e5db711a4ced8ef83b4.res"]
+source_file="res://aseprite/resources/vfx/flame/0.aseprite"
+dest_files=["res://.godot/imported/0.aseprite-ca9ab3246245cd02b855cda1cbbab91f.res"]
 
 [params]
 
 layer/exclude_layers_pattern=""
 layer/only_visible_layers=false
-layer/split_layers=false
-first_frame_only=true
 sheet/sheet_type="packed"
 sheet/sheet_columns=12
+sheet/frame_padding=0
 sheet/scale=1
+animation/round_fps=true

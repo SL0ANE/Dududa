@@ -3,12 +3,12 @@
 importer="aseprite_wizard.plugin.noop"
 type="PackedDataContainer"
 uid="uid://btmuhdnainltg"
-path="res://.godot/imported/candle.aseprite-d001b9692a4a6ef1b60c93046222560a.res"
+path="res://.godot/imported/candle.aseprite-d249e3b6e1d90ec1124470dc8f2b513c.res"
 
 [deps]
 
-source_file="res://Aseprite/resources/entities/skulls/misc/candle.aseprite"
-dest_files=["res://.godot/imported/candle.aseprite-d001b9692a4a6ef1b60c93046222560a.res"]
+source_file="res://aseprite/resources/entities/skulls/misc/candle.aseprite"
+dest_files=["res://.godot/imported/candle.aseprite-d249e3b6e1d90ec1124470dc8f2b513c.res"]
 
 [params]
 

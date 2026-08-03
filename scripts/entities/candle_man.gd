@@ -11,7 +11,9 @@ extends Pawn
 @export var legacy_height: float = 0.5
 # Collider-only height offset in game units.
 # Positive values make collider taller than visuals; negative values make it shorter.
-@export var collider_height_shift: float = -0.1
+@export var collider_height_shift: float = -0.0625
+@export var visual_top_offset: float = 0.25
+@export var visual_bottom_offset: float = 0.25
 
 @export_group("Drop Nodes")
 # Assign a Node2D whose local origin is already at visual top.
@@ -97,10 +99,11 @@ func _apply_visual_height(target_height_units: float, keep_top: bool, animate: b
 		_visual_tween.kill()
 		_visual_tween = null
 
-	var safe_original_height := maxf(reference_original_height, 0.0001)
-	var ratio := maxf(target_height_units / safe_original_height, 0.0)
+	var safe_original_height := maxf(reference_original_height - visual_top_offset + visual_bottom_offset, 0.0001)
+	var visual_height_units := maxf(target_height_units - visual_top_offset + visual_bottom_offset, 0.0)
+	var ratio := maxf(visual_height_units / safe_original_height, 0.0)
 	var target_scale := Vector2(_visual_scale_base_scale.x, _visual_scale_base_scale.y * ratio)
-	var target_scale_position := Vector2(_visual_scale_base_position.x, _visual_scale_base_position.y - GameUnits.units_to_pixels(target_height_units - reference_original_height) * 0.5)
+	var target_scale_position := Vector2(_visual_scale_base_position.x, _visual_scale_base_position.y - GameUnits.units_to_pixels(visual_height_units - safe_original_height) * 0.5)
 	var target_visual_position := _compute_visual_position_root_position(target_height_units)
 	_visual_position_root.position = target_visual_position
 	var offset = 0.0;

@@ -1,15 +1,24 @@
 [gd_scene format=3 uid="uid://day2tad1yvxs2"]
 
 [ext_resource type="Script" uid="uid://04j1ofohitwq" path="res://scripts/entities/candle_man.gd" id="1_4ykyb"]
-[ext_resource type="Texture2D" uid="uid://ceuwxap7hkufc" path="res://aseprite/resources/entities/characters/debug/creeper.png" id="2_dskxw"]
+[ext_resource type="Shader" uid="uid://b6jk7m7mwxa2b" path="res://shaders/sprites/death_noise.gdshader" id="2_qtkea"]
 [ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="3_alfa0"]
+[ext_resource type="Texture2D" uid="uid://dy1dukit4w1br" path="res://aseprite/resources/vfx/death_matter/mask.png" id="3_bypij"]
 [ext_resource type="Script" uid="uid://5jnnbaskc2h7" path="res://scripts/entities/controllers/player_pawn_controller.gd" id="3_dwk1e"]
+[ext_resource type="SpriteFrames" uid="uid://uwwwli8n4m4x" path="res://aseprite/resources/entities/characters/death_control/0.aseprite" id="6_xk5t7"]
+[ext_resource type="Texture2D" uid="uid://pgb0jns0tnfv" path="res://aseprite/resources/entities/skulls/misc/candle.png" id="7_28c76"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3mno2"]
 radius = 6.0
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vna8o"]
+shader = ExtResource("2_qtkea")
+shader_parameter/outline_color = Color(0.75686276, 0.30588236, 1, 1)
+shader_parameter/base_color = Color(0.043, 0.047, 0.086, 1)
+
 [node name="DeathControlWizard" type="CharacterBody2D" unique_id=1582720686]
 script = ExtResource("1_4ykyb")
+legacy_height = 0.8
 visual_drop_duration = 0.25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
@@ -17,15 +26,28 @@ position = Vector2(0, -15)
 shape = SubResource("CapsuleShape2D_3mno2")
 
 [node name="VisualScaleRoot" type="Node2D" parent="." unique_id=1001536211]
-position = Vector2(0, -16)
+position = Vector2(0, -12)
 
 [node name="Sprite2D" type="Sprite2D" parent="VisualScaleRoot" unique_id=488314258]
-texture = ExtResource("2_dskxw")
+z_index = -160
+z_as_relative = false
+material = SubResource("ShaderMaterial_vna8o")
+texture = ExtResource("3_bypij")
 
 [node name="VisualPositionRoot" type="Node2D" parent="." unique_id=947227969]
 position = Vector2(0, -32)
 
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualPositionRoot" unique_id=1464487730]
+position = Vector2(0, 9)
+sprite_frames = ExtResource("6_xk5t7")
+animation = &"Idle"
+
+[node name="Sprite2D" type="Sprite2D" parent="VisualPositionRoot" unique_id=1668291606]
+position = Vector2(0, 3)
+texture = ExtResource("7_28c76")
+
 [node name="Flame" parent="VisualPositionRoot" unique_id=1005148100 instance=ExtResource("3_alfa0")]
+z_index = -4
 position = Vector2(0, -4)
 
 [node name="Controller" type="Node" parent="." unique_id=973715378]

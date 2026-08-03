@@ -3,12 +3,12 @@
 importer="aseprite_wizard.plugin.spriteframes"
 type="SpriteFrames"
 uid="uid://drb5bun2gdg3w"
-path="res://.godot/imported/regular_0.aseprite-3993b9744a90a5376f31fad80d9680d9.res"
+path="res://.godot/imported/regular_0.aseprite-6bb00bb1a6644f396c50d28f70b550e3.res"
 
 [deps]
 
-source_file="res://Aseprite/resources/entities/skulls/regular_0.aseprite"
-dest_files=["res://.godot/imported/regular_0.aseprite-3993b9744a90a5376f31fad80d9680d9.res"]
+source_file="res://aseprite/resources/entities/skulls/regular_0.aseprite"
+dest_files=["res://.godot/imported/regular_0.aseprite-6bb00bb1a6644f396c50d28f70b550e3.res"]
 
 [params]
 

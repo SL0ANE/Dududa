@@ -3,12 +3,12 @@
 importer="aseprite_wizard.plugin.static-texture"
 type="PortableCompressedTexture2D"
 uid="uid://chgssmo3io04j"
-path="res://.godot/imported/placeholder_tile.aseprite-a7ba986f7124262d21a055df94b41178.res"
+path="res://.godot/imported/placeholder_tile.aseprite-4d708a35217e0670e6a0d6dc04bf5808.res"
 
 [deps]
 
-source_file="res://Aseprite/resources/levels/generic/placeholder_tile.aseprite"
-dest_files=["res://.godot/imported/placeholder_tile.aseprite-a7ba986f7124262d21a055df94b41178.res"]
+source_file="res://aseprite/resources/levels/generic/placeholder_tile.aseprite"
+dest_files=["res://.godot/imported/placeholder_tile.aseprite-4d708a35217e0670e6a0d6dc04bf5808.res"]
 
 [params]
 

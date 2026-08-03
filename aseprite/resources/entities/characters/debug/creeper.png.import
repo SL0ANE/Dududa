@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ceuwxap7hkufc"
-path="res://.godot/imported/creeper.png-41e62e17f87d9ce2b19c4f818bffb1eb.ctex"
+path="res://.godot/imported/creeper.png-5d61d7781bab5f14e19024dc3b6dbfea.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Aseprite/resources/entities/characters/debug/creeper.png"
-dest_files=["res://.godot/imported/creeper.png-41e62e17f87d9ce2b19c4f818bffb1eb.ctex"]
+source_file="res://aseprite/resources/entities/characters/debug/creeper.png"
+dest_files=["res://.godot/imported/creeper.png-5d61d7781bab5f14e19024dc3b6dbfea.ctex"]
 
 [params]
 
