@@ -552,7 +552,7 @@ _data = {
 script = ExtResource("1_4ykyb")
 legacy_height = 0.8
 visual_bottom_offset = 0.5
-visual_drop_duration = 0.25
+visual_drop_duration = 0.5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
 position = Vector2(0, -15)
