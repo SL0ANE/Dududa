@@ -106,12 +106,12 @@ advance_expression = "not expr_is_on_floor"
 
 [resource]
 states/Air/node = SubResource("AnimationNodeAnimation_t4o3u")
-states/Air/position = Vector2(173, 5)
+states/Air/position = Vector2(172.77779, 5)
 states/End/position = Vector2(769, 73)
 states/Idle/node = SubResource("AnimationNodeAnimation_jgdjt")
 states/Idle/position = Vector2(173, 200.22221)
 states/Jump/node = SubResource("AnimationNodeBlendSpace1D_tq5n7")
-states/Jump/position = Vector2(173, 105)
+states/Jump/position = Vector2(174.55556, 107)
 states/Land/node = SubResource("AnimationNodeAnimation_gygc3")
 states/Land/position = Vector2(-32, 5)
 states/Move/node = SubResource("AnimationNodeAnimation_j2m6s")

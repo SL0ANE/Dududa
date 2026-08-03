@@ -8,6 +8,9 @@ const Units = preload("res://scripts/shared/game_units.gd")
 @export var animation_tree_path: NodePath = ^"../AnimationTree"
 @export var force_bridge_expression_base := true
 
+@export_group("Debug")
+@export var debug_log_state_transitions := false
+
 @export_group("Tree Parameters")
 @export var param_is_on_floor_path: StringName = &"parameters/conditions/is_on_floor"
 @export var param_is_moving_path: StringName = &"parameters/conditions/is_moving"
@@ -25,6 +28,7 @@ var _pawn: Pawn
 var _animation_tree: AnimationTree
 var _last_facing := 1
 var _tree_param_keys := {}
+var _last_state_name: StringName = &""
 
 # Public expression values read by AnimationTree transition expressions.
 var expr_is_on_floor := false
@@ -51,6 +55,7 @@ func _ready() -> void:
 	_bind_expression_base()
 	_cache_tree_parameter_keys()
 	_animation_tree.active = true
+	_last_state_name = _get_current_state_name()
 	set_physics_process(true)
 
 
@@ -60,6 +65,7 @@ func _physics_process(_delta: float) -> void:
 
 	_sync_expression_values()
 	_sync_tree_parameters()
+	_log_state_transition_if_needed()
 
 
 func _bind_expression_base() -> void:
@@ -176,3 +182,43 @@ func _get_pawn_facing() -> int:
 		_last_facing = -1 if _pawn.velocity.x < 0.0 else 1
 
 	return _last_facing
+
+
+func _get_current_state_name() -> StringName:
+	if _animation_tree == null:
+		return &""
+
+	var playback = _animation_tree.get("parameters/playback")
+	if playback is AnimationNodeStateMachinePlayback:
+		return (playback as AnimationNodeStateMachinePlayback).get_current_node()
+
+	return &""
+
+
+func _log_state_transition_if_needed() -> void:
+	if not debug_log_state_transitions:
+		return
+	if _pawn == null or _animation_tree == null:
+		return
+
+	var current_state := _get_current_state_name()
+	if current_state == _last_state_name:
+		return
+
+	var now_ms := Time.get_ticks_msec()
+	var from_state := "<none>" if _last_state_name.is_empty() else String(_last_state_name)
+	var to_state := "<none>" if current_state.is_empty() else String(current_state)
+	var vx_units := Units.pixels_to_units(_pawn.velocity.x)
+	var vy_units := Units.pixels_to_units(_pawn.velocity.y)
+
+	print(
+		"[PawnAnimTransition][", now_ms, " ms] ",
+		from_state, " -> ", to_state,
+		" floor=", expr_is_on_floor,
+		" moving=", expr_is_moving,
+		" vx=", snappedf(vx_units, 0.001),
+		" vy=", snappedf(vy_units, 0.001),
+		" air=", snappedf(expr_airborne_progress, 0.001)
+	)
+
+	_last_state_name = current_state

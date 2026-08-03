@@ -2,7 +2,6 @@
 
 [ext_resource type="PackedScene" uid="uid://tltu20ljw8ss" path="res://prefabs/background/pixel_grid_background.tscn" id="1_yu3tr"]
 [ext_resource type="Texture2D" uid="uid://chgssmo3io04j" path="res://aseprite/resources/levels/generic/placeholder_tile.aseprite" id="2_6hxeo"]
-[ext_resource type="PackedScene" uid="uid://bsharveg5e1vc" path="res://prefabs/entities/mind_control/mine_control_wizard_npc.tscn" id="3_mbbcq"]
 [ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="6_d33wo"]
 [ext_resource type="PackedScene" uid="uid://day2tad1yvxs2" path="res://prefabs/entities/depth_control/death_control_wizard.tscn" id="7_6hxeo"]
 [ext_resource type="Texture2D" uid="uid://b5styvcdp1b02" path="res://aseprite/resources/entities/note_tables/content/debug/0001.png" id="7_mbbcq"]
@@ -185,9 +184,6 @@ tile_map_data = PackedByteArray("AAD0/wUAAAAEAAMAAAD1/wUAAAAGAAAAAAD2/wUAAAAGAAA
 tile_set = SubResource("TileSet_61www")
 rendering_quadrant_size = 8
 physics_quadrant_size = 8
-
-[node name="MindControlWizardNPC" parent="." unique_id=2088464385 instance=ExtResource("3_mbbcq")]
-position = Vector2(32, 32)
 
 [node name="NoteTable" parent="." unique_id=2030372289 instance=ExtResource("6_d33wo")]
 position = Vector2(200, 40)

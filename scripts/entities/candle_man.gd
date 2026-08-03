@@ -23,6 +23,11 @@ extends Pawn
 @export_group("Visual")
 @export var visual_drop_duration: float = 0.14
 
+@export_group("Jump Settings")
+@export var jump_height_on_no_drops: float = 0.6
+@export var jump_time_to_peak_on_no_drops: float = 0.175
+@export var jump_time_to_fall_on_no_drops: float = 0.15
+
 var reference_original_height: float = 2.0
 
 var _visual_scale_root: Node2D
@@ -32,6 +37,10 @@ var _visual_tween: Tween
 var _visual_scale_base_scale: Vector2 = Vector2.ONE
 var _visual_scale_base_position: Vector2 = Vector2.ZERO
 var _visual_position_base_position: Vector2 = Vector2.ZERO
+
+var _original_jump_height: float = 0.0
+var _original_jump_time_to_peak: float = 0.0
+var _original_jump_time_to_fall: float = 0.0
 
 func _ready() -> void:
 	super._ready()
@@ -45,12 +54,16 @@ func _ready() -> void:
 	else:
 		push_warning("CandleMan: visual roots not found; visual height changes are disabled.")
 
+	_original_jump_height = jump_height
+	_original_jump_time_to_peak = jump_time_to_peak
+	_original_jump_time_to_fall = jump_time_to_fall
+
 	var current_height_units := _get_collider_height_units()
 	if current_height_units <= 0.0:
 		push_warning("CandleMan: unsupported or missing CollisionShape2D; drop behavior disabled.")
 		return
 
-	_sync_jump_enabled_state()
+	_sync_jump_state()
 	# On initialization keep the bottom edge fixed and apply visual scale immediately.
 	_apply_drop(drop_count, false, false)
 
@@ -88,7 +101,7 @@ func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visua
 			global_position.y += collider_height_delta_px
 
 	_apply_visual_height(target_height_units, keep_top, animate_visual)
-	_sync_jump_enabled_state()
+	_sync_jump_state()
 
 
 func _apply_visual_height(target_height_units: float, keep_top: bool, animate: bool) -> void:
@@ -135,5 +148,15 @@ func _compute_visual_position_root_position(target_height_units: float) -> Vecto
 	)
 
 
-func _sync_jump_enabled_state() -> void:
-	jump_enabled = drop_count > 0 and height_per_drop > 0.0
+func _sync_jump_state() -> void:
+	if drop_count <= 0:
+		if(jump_height_on_no_drops <= 0):
+			jump_enabled = false
+		jump_height = jump_height_on_no_drops
+		jump_time_to_peak = jump_time_to_peak_on_no_drops
+		jump_time_to_fall = jump_time_to_fall_on_no_drops
+	else:
+		jump_enabled = true
+		jump_height = _original_jump_height
+		jump_time_to_peak = _original_jump_time_to_peak
+		jump_time_to_fall = _original_jump_time_to_fall

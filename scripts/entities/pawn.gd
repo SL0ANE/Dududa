@@ -127,6 +127,10 @@ var _was_moving := false
 var _pushing_prev := {}
 var _pushed_prev := {}
 
+var _jump_height_on_jump := 0.0
+var _jump_time_to_peak_on_jump := 0.0
+var _jump_time_to_fall_on_jump := 0.0
+
 # @onready var _animation_tree: AnimationTree = get_node_or_null(animation_tree_path)
 @onready var _sprite: AnimatedSprite2D = _resolve_sprite()
 
@@ -177,6 +181,10 @@ func _physics_process(delta: float) -> void:
 	var can_ground_jump := was_on_ground or _coyote_time_left > 0.0
 	var can_jump := has_jumps_left and (can_ground_jump or not was_on_ground)
 	if jump_pressed and can_jump:
+		_jump_height_on_jump = jump_height
+		_jump_time_to_peak_on_jump = jump_time_to_peak
+		_jump_time_to_fall_on_jump = jump_time_to_fall
+
 		var jump_velocity := _compute_jump_velocity()
 		_driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
 		_air_phase_time = 0.0
@@ -362,7 +370,7 @@ func _apply_vertical_velocity(delta: float, was_on_ground: bool) -> void:
 		_was_rising = is_rising
 
 	_air_phase_time += delta
-	var phase_time := jump_time_to_peak if is_rising else jump_time_to_fall
+	var phase_time := _jump_time_to_peak_on_jump if is_rising else _jump_time_to_fall_on_jump
 	_normalized_air_phase = clampf(_air_phase_time / maxf(phase_time, 0.001), 0.0, 1.0)
 
 	var gravity := _compute_gravity(is_rising)
@@ -904,12 +912,12 @@ func on_pushed_ended(_other: Pawn, _mode: int) -> void:
 	pass
 
 func _compute_jump_velocity() -> float:
-	return (-2.0 * jump_height) / maxf(jump_time_to_peak, 0.001)
+	return (-2.0 * _jump_height_on_jump) / maxf(_jump_time_to_peak_on_jump, 0.001)
 
 
 func _compute_gravity(is_rising: bool) -> float:
-	var phase_time := jump_time_to_peak if is_rising else jump_time_to_fall
-	return (2.0 * jump_height) / pow(maxf(phase_time, 0.001), 2.0)
+	var phase_time := _jump_time_to_peak_on_jump if is_rising else _jump_time_to_fall_on_jump
+	return (2.0 * _jump_height_on_jump) / pow(maxf(phase_time, 0.001), 2.0)
 
 
 func _sample_curve(curve: Curve, x: float, fallback: float) -> float:
