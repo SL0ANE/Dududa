@@ -563,11 +563,16 @@ func _stabilize_idle_solid_pawn(move_axis: float, jump_pressed: bool, pre_move_p
 	if is_equal_approx(global_position.x, pre_move_position.x) and is_equal_approx(global_position.y, pre_move_position.y):
 		return
 
-	# Grounded idle SOLID pawns should behave like static supports: lock both horizontal and vertical drift.
-	global_position = pre_move_position
-	velocity = Vector2.ZERO
-	_driven_velocity = Vector2.ZERO
-	_external_velocity = Vector2.ZERO
+	# Keep SOLID idle pawns horizontally stable, but do not undo downward floor corrections.
+	var stabilized_position := global_position
+	stabilized_position.x = pre_move_position.x
+	if global_position.y < pre_move_position.y:
+		stabilized_position.y = pre_move_position.y
+	global_position = stabilized_position
+
+	velocity.x = 0.0
+	_driven_velocity.x = 0.0
+	_external_velocity.x = 0.0
 
 
 func _should_skip_move_and_slide_for_idle_solid(move_axis: float, jump_pressed: bool, was_on_ground: bool) -> bool:

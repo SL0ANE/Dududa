@@ -6,7 +6,7 @@
 [ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="4_jxkf8"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j3s1n"]
-radius = 5.0
+radius = 4.0
 
 [sub_resource type="Animation" id="Animation_jxkf8"]
 length = 0.1
