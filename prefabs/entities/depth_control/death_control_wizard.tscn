@@ -586,6 +586,7 @@ position = Vector2(0, -4)
 
 [node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1964087336]
 stream = ExtResource("6_28c76")
+volume_db = 4.0
 attenuation = 0.0
 
 [node name="Controller" type="Node" parent="." unique_id=973715378]
