@@ -5,8 +5,8 @@
 [ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="3_tqhs2"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="4_jxkf8"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_3ljwn"]
-size = Vector2(14, 8)
+[sub_resource type="CircleShape2D" id="CircleShape2D_j3s1n"]
+radius = 5.0
 
 [sub_resource type="Animation" id="Animation_jxkf8"]
 length = 0.1
@@ -417,6 +417,7 @@ _data = {
 script = ExtResource("1_7lyv0")
 pawn_collision_mode = 2
 push_ground_only = false
+collision_shape_paths = Array[NodePath]([NodePath("CollisionShape2D"), NodePath("CollisionShape2D2")])
 sprite_path = NodePath("")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=565443965]
@@ -424,10 +425,15 @@ position = Vector2(0, -5)
 sprite_frames = ExtResource("2_tqhs2")
 animation = &"Disabled"
 
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2144877810]
+y_sort_enabled = true
+position = Vector2(2, -4)
+shape = SubResource("CircleShape2D_j3s1n")
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1280300765]
 y_sort_enabled = true
-position = Vector2(0, -4)
-shape = SubResource("RectangleShape2D_3ljwn")
+position = Vector2(-2, -4)
+shape = SubResource("CircleShape2D_j3s1n")
 
 [node name="SoundEffects" type="Node2D" parent="." unique_id=1795731196]
 
@@ -444,3 +450,5 @@ parameters/EnabledState/Jump/blend_position = 0.0
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1299353299]
 root_node = NodePath("../AnimationTree")
 libraries/ = SubResource("AnimationLibrary_3tulw")
+
+[node name="CollisionSet" type="Node2D" parent="." unique_id=1363008084]

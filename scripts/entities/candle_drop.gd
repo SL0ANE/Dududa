@@ -203,8 +203,7 @@ func _snap_to_absorbed_slot() -> void:
 
 
 func _set_collision_enabled(enabled: bool) -> void:
-	var collider := get_node_or_null(collision_shape_path) as CollisionShape2D
-	if collider != null:
+	for collider in _get_cached_collision_shapes():
 		collider.disabled = not enabled
 
 	var target_mode := PawnCollisionMode.SOFT_PUSH if enabled else PawnCollisionMode.NO_COLLISION

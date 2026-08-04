@@ -110,8 +110,8 @@ enum PawnCollisionMode {
 @export_group("Nodes")
 # Relative path to controller node used to build commands.
 @export var controller_path: NodePath
-# Relative path to primary collision shape used by height-based subclasses.
-@export var collision_shape_path: NodePath = ^"CollisionShape2D"
+# Relative paths to collision shapes. Each path must point directly to a CollisionShape2D.
+@export var collision_shape_paths: Array[NodePath] = [^"CollisionShape2D"]
 # Relative path to AnimationTree node.
 @export var animation_tree_path: NodePath = ^"AnimationTree"
 # Optional sprite node path. Empty is allowed for multi-part visuals.
@@ -123,6 +123,7 @@ var _facing := 1
 
 var _controller: PawnController
 var _collider: CollisionShape2D
+var _collision_shapes: Array[CollisionShape2D] = []
 var _jump_sfx_player: AudioStreamPlayer2D
 var _land_sfx_player: AudioStreamPlayer2D
 var _footstep_sfx_player: AudioStreamPlayer2D
@@ -159,6 +160,7 @@ func _ready() -> void:
 	_last_pawn_collision_mode = pawn_collision_mode
 	call_deferred("_refresh_all_pawn_collisions")
 
+	_cache_collision_shapes_from_paths()
 	_collider = _resolve_movable_collider()
 	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
@@ -283,16 +285,9 @@ func _resolve_sprite() -> AnimatedSprite2D:
 
 
 func _resolve_movable_collider() -> CollisionShape2D:
-	if not collision_shape_path.is_empty():
-		var path_node := get_node_or_null(collision_shape_path)
-		if path_node is CollisionShape2D:
-			return path_node as CollisionShape2D
-
-	for child in find_children("*", "CollisionShape2D", true, false):
-		if child is CollisionShape2D:
-			var cs := child as CollisionShape2D
-			if not cs.disabled and cs.shape != null:
-				return cs
+	var colliders := _get_active_collision_shapes()
+	if not colliders.is_empty():
+		return colliders[0]
 
 	return null
 
@@ -306,9 +301,11 @@ func _get_movable_collider() -> CollisionShape2D:
 
 
 func _ensure_collider_bottom_aligned_on_spawn() -> void:
-	var collision_shape := _get_movable_collider()
-	if collision_shape == null:
+	var colliders := _get_active_collision_shapes()
+	if colliders.size() != 1:
 		return
+
+	var collision_shape := colliders[0]
 	if collision_shape.shape == null:
 		return
 
@@ -326,19 +323,19 @@ func _ensure_collider_bottom_aligned_on_spawn() -> void:
 
 func _get_collider_height_px() -> float:
 	var collision_shape := _get_movable_collider()
-	if collision_shape == null:
-		return 0.0
-	if collision_shape.shape == null:
-		return 0.0
+	if collision_shape != null and collision_shape.shape != null:
+		var shape := collision_shape.shape
+		if shape is RectangleShape2D:
+			return (shape as RectangleShape2D).size.y
+		if shape is CapsuleShape2D:
+			var capsule := shape as CapsuleShape2D
+			return capsule.height
 
-	var shape := collision_shape.shape
-	if shape is RectangleShape2D:
-		return (shape as RectangleShape2D).size.y
-	if shape is CapsuleShape2D:
-		var capsule := shape as CapsuleShape2D
-		return capsule.height
-
-	return 0.0
+	# Fallback supports multi-collider setups and shapes without explicit height API.
+	var bounds := _get_collision_bounds_pixels()
+	if bounds.size == Vector2.ZERO:
+		return 0.0
+	return bounds.size.y
 
 
 func _get_collider_height_units() -> float:
@@ -696,13 +693,7 @@ func _get_collision_bounds_pixels() -> Rect2:
 	var min_y := 0.0
 	var max_y := 0.0
 
-	for child in find_children("*", "CollisionShape2D", true, false):
-		if not (child is CollisionShape2D):
-			continue
-
-		var cs := child as CollisionShape2D
-		if cs.disabled or cs.shape == null:
-			continue
+	for cs in _get_active_collision_shapes():
 
 		var center := cs.global_position
 		var half_extents := _shape_half_extents_pixels(cs.shape)
@@ -871,13 +862,7 @@ func _resolve_pair_collision_mode(other: Pawn) -> int:
 
 func _get_collision_half_width_pixels() -> float:
 	var max_half_width := 0.0
-	for child in get_children():
-		if not (child is CollisionShape2D):
-			continue
-
-		var cs := child as CollisionShape2D
-		if cs.disabled or cs.shape == null:
-			continue
+	for cs in _get_active_collision_shapes():
 
 		var shape_half_width := _shape_half_width_pixels(cs.shape)
 		shape_half_width += absf(cs.position.x)
@@ -888,13 +873,7 @@ func _get_collision_half_width_pixels() -> float:
 
 func _get_collision_half_height_pixels() -> float:
 	var max_half_height := 0.0
-	for child in get_children():
-		if not (child is CollisionShape2D):
-			continue
-
-		var cs := child as CollisionShape2D
-		if cs.disabled or cs.shape == null:
-			continue
+	for cs in _get_active_collision_shapes():
 
 		var shape_half_height := _shape_half_height_pixels(cs.shape)
 		shape_half_height += absf(cs.position.y)
@@ -940,6 +919,64 @@ func _shape_half_extents_pixels(shape: Shape2D) -> Vector2:
 		return Vector2(capsule.radius, capsule.height * 0.5)
 
 	return Vector2.ZERO
+
+
+func _get_active_collision_shapes() -> Array[CollisionShape2D]:
+	if _collision_shapes.is_empty():
+		_cache_collision_shapes_from_paths()
+
+	var colliders: Array[CollisionShape2D] = []
+	for cached in _collision_shapes:
+		if cached == null or not is_instance_valid(cached):
+			continue
+
+		var cs := cached as CollisionShape2D
+		if cs.disabled or cs.shape == null:
+			continue
+
+		colliders.append(cs)
+
+	return colliders
+
+
+func _get_cached_collision_shapes() -> Array[CollisionShape2D]:
+	if _collision_shapes.is_empty():
+		_cache_collision_shapes_from_paths()
+
+	var colliders: Array[CollisionShape2D] = []
+	for cached in _collision_shapes:
+		if cached == null or not is_instance_valid(cached):
+			continue
+		colliders.append(cached)
+
+	return colliders
+
+
+func _cache_collision_shapes_from_paths() -> void:
+	_collision_shapes.clear()
+
+	if collision_shape_paths.is_empty():
+		push_warning("Pawn: collision_shape_paths is empty.")
+		return
+
+	for collider_path in collision_shape_paths:
+		if collider_path.is_empty():
+			continue
+
+		var path_node := get_node_or_null(collider_path)
+		if path_node == null:
+			push_warning("Pawn: invalid collision shape path: %s" % String(collider_path))
+			continue
+
+		if not (path_node is CollisionShape2D):
+			push_warning("Pawn: path does not reference CollisionShape2D: %s" % String(collider_path))
+			continue
+
+		var collider := path_node as CollisionShape2D
+		if _collision_shapes.has(collider):
+			continue
+
+		_collision_shapes.append(collider)
 
 
 func _set_collision_exception_with(other: PhysicsBody2D, disabled: bool) -> void:
