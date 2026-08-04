@@ -1,0 +1,28 @@
+[gd_resource type="AnimationNodeStateMachine" format=3 uid="uid://bvom5pbdyh03j"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_vtvpf"]
+animation = &"Disabled"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_qouk8"]
+animation = &"Spin"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_vptag"]
+advance_mode = 2
+advance_expression = "expr_is_absorbing"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_i1tdp"]
+advance_mode = 2
+advance_expression = "!expr_is_absorbing"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_3llef"]
+advance_mode = 2
+
+[resource]
+states/Disabled/node = SubResource("AnimationNodeAnimation_vtvpf")
+states/Disabled/position = Vector2(35, 200.29628)
+states/End/position = Vector2(769, 73)
+states/Spin/node = SubResource("AnimationNodeAnimation_qouk8")
+states/Spin/position = Vector2(284, 200.29628)
+states/Start/position = Vector2(-178.66667, 200.29628)
+transitions = ["Disabled", "Spin", SubResource("AnimationNodeStateMachineTransition_vptag"), "Spin", "Disabled", SubResource("AnimationNodeStateMachineTransition_i1tdp"), "Start", "Disabled", SubResource("AnimationNodeStateMachineTransition_3llef")]
+graph_offset = Vector2(-296, -166)

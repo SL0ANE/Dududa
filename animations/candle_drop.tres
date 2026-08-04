@@ -1,111 +1,25 @@
 [gd_resource type="AnimationNodeStateMachine" format=3 uid="uid://b5rkbgnw55jky"]
 
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_t4o3u"]
-animation = &"Air"
+[ext_resource type="AnimationNodeStateMachine" uid="uid://bvom5pbdyh03j" path="res://animations/candle_drop_disabled.tres" id="1_bax0q"]
+[ext_resource type="AnimationNodeStateMachine" uid="uid://b4puuicrsfhln" path="res://animations/candle_drop_enabled.tres" id="1_kjktm"]
 
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_30ymf"]
-animation = &"Blink"
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_05gl8"]
+advance_mode = 2
+advance_expression = "expr_bridge_connected"
 
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_kjktm"]
-animation = &"Disabled"
-
-[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_bax0q"]
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jgdjt"]
-animation = &"Idle"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_tq5n7"]
-animation = &"Jump_0"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_35c0p"]
-animation = &"Jump_1"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5p1qg"]
-animation = &"Jump_2"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_4juo2"]
-animation = &"Jump_3"
-
-[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_tq5n7"]
-value_label = "air_progress"
-blend_mode = 1
-blend_point_0/node = SubResource("AnimationNodeAnimation_tq5n7")
-blend_point_0/pos = 0.0
-blend_point_0/name = &"Jump_0"
-blend_point_1/node = SubResource("AnimationNodeAnimation_35c0p")
-blend_point_1/pos = 0.25
-blend_point_1/name = &"Jump_1"
-blend_point_2/node = SubResource("AnimationNodeAnimation_5p1qg")
-blend_point_2/pos = 0.5
-blend_point_2/name = &"Jump_2"
-blend_point_3/node = SubResource("AnimationNodeAnimation_4juo2")
-blend_point_3/pos = 0.75
-blend_point_3/name = &"Jump_3"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_gygc3"]
-animation = &"Land"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_j2m6s"]
-animation = &"Move"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_hreaw"]
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_bax0q"]
 advance_mode = 2
 
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_idle_to_move"]
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jcant"]
 advance_mode = 2
-advance_expression = "expr_is_on_floor and expr_is_moving"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_35c0p"]
-advance_mode = 2
-advance_expression = "not expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_gygc3"]
-advance_mode = 2
-advance_expression = "expr_airborne_progress > 1.0"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_bj54l"]
-advance_mode = 2
-advance_expression = "expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jubpg"]
-advance_mode = 2
-advance_expression = "expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_axrf5"]
-switch_mode = 2
-advance_mode = 2
-advance_expression = "expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_q4th4"]
-advance_mode = 2
-advance_expression = "not expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_tq5n7"]
-advance_mode = 2
-advance_expression = "not expr_is_on_floor"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_move_to_idle"]
-advance_mode = 2
-advance_expression = "expr_is_on_floor and not expr_is_moving"
+advance_expression = "!expr_bridge_connected"
 
 [resource]
-states/Air/node = SubResource("AnimationNodeAnimation_t4o3u")
-states/Air/position = Vector2(172.77779, 5)
-states/Blink/node = SubResource("AnimationNodeAnimation_30ymf")
-states/Blink/position = Vector2(382.3333, 107.74074)
-states/Disabled/node = SubResource("AnimationNodeAnimation_kjktm")
-states/Disabled/position = Vector2(-20.000008, -197.33334)
-states/Enabled/node = SubResource("AnimationNodeBlendTree_bax0q")
-states/Enabled/position = Vector2(300.3333, -129.66667)
+states/DisabledState/node = ExtResource("1_bax0q")
+states/DisabledState/position = Vector2(23, 200.29628)
+states/EnabledState/node = ExtResource("1_kjktm")
+states/EnabledState/position = Vector2(399, 200.29628)
 states/End/position = Vector2(769, 73)
-states/Idle/node = SubResource("AnimationNodeAnimation_jgdjt")
-states/Idle/position = Vector2(173.47737, 201.76405)
-states/Jump/node = SubResource("AnimationNodeBlendSpace1D_tq5n7")
-states/Jump/position = Vector2(172.65158, 107.49383)
-states/Land/node = SubResource("AnimationNodeAnimation_gygc3")
-states/Land/position = Vector2(-32, 5)
-states/Move/node = SubResource("AnimationNodeAnimation_j2m6s")
-states/Move/position = Vector2(547, 201.22221)
 states/Start/position = Vector2(-178.66667, 200.29628)
-transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_hreaw"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_idle_to_move"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_35c0p"), "Jump", "Air", SubResource("AnimationNodeStateMachineTransition_gygc3"), "Air", "Land", SubResource("AnimationNodeStateMachineTransition_bj54l"), "Jump", "Land", SubResource("AnimationNodeStateMachineTransition_jubpg"), "Land", "Idle", SubResource("AnimationNodeStateMachineTransition_axrf5"), "Land", "Jump", SubResource("AnimationNodeStateMachineTransition_q4th4"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_tq5n7"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_move_to_idle")]
-graph_offset = Vector2(-198, -314)
+transitions = ["DisabledState", "EnabledState", SubResource("AnimationNodeStateMachineTransition_05gl8"), "Start", "DisabledState", SubResource("AnimationNodeStateMachineTransition_bax0q"), "EnabledState", "DisabledState", SubResource("AnimationNodeStateMachineTransition_jcant")]
+graph_offset = Vector2(-281, 53)

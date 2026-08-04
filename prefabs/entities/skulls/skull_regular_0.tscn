@@ -230,6 +230,34 @@ tracks/1/keys = {
 "values": ["Jump_1"]
 }
 
+[sub_resource type="Animation" id="Animation_3tulw"]
+length = 0.1
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../AnimatedSprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("../AnimatedSprite2D:animation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": ["Jump_2"]
+}
+
 [sub_resource type="Animation" id="Animation_mp8jq"]
 length = 0.1
 loop_mode = 1
@@ -259,7 +287,7 @@ tracks/1/keys = {
 }
 
 [sub_resource type="Animation" id="Animation_n3ky7"]
-length = 0.3
+length = 0.1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -267,10 +295,10 @@ tracks/0/path = NodePath("../AnimatedSprite2D:frame")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.1, 0.2),
-"transitions": PackedFloat32Array(1, 1, 1),
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
 "update": 1,
-"values": [0, 1, 2]
+"values": [0]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -378,6 +406,7 @@ _data = {
 &"Jump2": SubResource("Animation_evs7f"),
 &"Jump_0": SubResource("Animation_im8ij"),
 &"Jump_1": SubResource("Animation_v65ug"),
+&"Jump_2": SubResource("Animation_3tulw"),
 &"Jump_3": SubResource("Animation_mp8jq"),
 &"Land": SubResource("Animation_n3ky7"),
 &"Move": SubResource("Animation_bw8tt"),
@@ -395,7 +424,7 @@ sprite_path = NodePath("")
 position = Vector2(0, -5)
 sprite_frames = ExtResource("2_tqhs2")
 animation = &"Move"
-frame = 3
+frame = 1
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1280300765]
 y_sort_enabled = true
@@ -412,9 +441,8 @@ root_node = NodePath(".")
 tree_root = ExtResource("4_jxkf8")
 advance_expression_base_node = NodePath("..")
 anim_player = NodePath("../AnimationPlayer")
-parameters/Jump/blend_position = 0.0
+parameters/EnabledState/Jump/blend_position = 0.0
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1299353299]
 root_node = NodePath("../AnimationTree")
 libraries/ = SubResource("AnimationLibrary_3tulw")
-autoplay = &"Disabled"
