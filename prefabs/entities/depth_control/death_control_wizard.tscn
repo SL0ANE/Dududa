@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="3_alfa0"]
 [ext_resource type="Texture2D" uid="uid://dy1dukit4w1br" path="res://aseprite/resources/vfx/death_matter/mask.png" id="3_bypij"]
 [ext_resource type="Script" uid="uid://5jnnbaskc2h7" path="res://scripts/entities/controllers/player_pawn_controller.gd" id="3_dwk1e"]
-[ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="6_28c76"]
+[ext_resource type="AudioStream" uid="uid://dkl8vlovvm3np" path="res://sound_effects/character/jump/0.wav" id="6_28c76"]
 [ext_resource type="SpriteFrames" uid="uid://uwwwli8n4m4x" path="res://aseprite/resources/entities/characters/death_control/0.aseprite" id="6_xk5t7"]
 [ext_resource type="Script" uid="uid://dgks5in2lbqg7" path="res://scripts/entities/pawn_animation_tree_bridge.gd" id="8_xk5t7"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://47x7u37ky2pb" path="res://animations/candle_man.tres" id="9_28c76"]
@@ -586,6 +586,7 @@ position = Vector2(0, -4)
 
 [node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1964087336]
 stream = ExtResource("6_28c76")
+attenuation = 0.0
 
 [node name="Controller" type="Node" parent="." unique_id=973715378]
 script = ExtResource("3_dwk1e")

@@ -396,3 +396,4 @@ script = ExtResource("3_jgdjt")
 
 [node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=312691294]
 stream = ExtResource("5_qoqhy")
+attenuation = 1.0

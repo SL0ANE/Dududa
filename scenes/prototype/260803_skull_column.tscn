@@ -175,6 +175,9 @@ pattern_0 = SubResource("TileMapPattern_epn7r")
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1406278956]
 zoom = Vector2(2, 2)
 
+[node name="AudioListener2D" type="AudioListener2D" parent="Camera2D" unique_id=1406278957]
+current = true
+
 [node name="PixelGridBackgroundLayer" parent="." unique_id=2133907842 instance=ExtResource("1_yu3tr")]
 
 [node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=687455082]

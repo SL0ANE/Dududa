@@ -29,7 +29,7 @@ pixels_per_unit=16.0
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/AS2P/plugin.cfg", "res://addons/AsepriteWizard/plugin.cfg", "res://addons/renderdoc_launcher/plugin.cfg")
+enabled=PackedStringArray("res://addons/AS2P/plugin.cfg", "res://addons/AsepriteWizard/plugin.cfg")
 
 [physics]
 
