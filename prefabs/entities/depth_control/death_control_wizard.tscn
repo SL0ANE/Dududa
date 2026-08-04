@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://day2tad1yvxs2"]
 
 [ext_resource type="Script" uid="uid://04j1ofohitwq" path="res://scripts/entities/candle_man.gd" id="1_4ykyb"]
+[ext_resource type="PackedScene" uid="uid://tlm4spedijs0" path="res://prefabs/entities/skulls/skull_regular_0.tscn" id="2_eqphs"]
 [ext_resource type="Shader" uid="uid://b6jk7m7mwxa2b" path="res://shaders/sprites/death_noise.gdshader" id="2_qtkea"]
 [ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="3_alfa0"]
 [ext_resource type="Texture2D" uid="uid://dy1dukit4w1br" path="res://aseprite/resources/vfx/death_matter/mask.png" id="3_bypij"]
@@ -550,10 +551,13 @@ _data = {
 }
 
 [node name="DeathControlWizard" type="CharacterBody2D" unique_id=1582720686]
+y_sort_enabled = true
 script = ExtResource("1_4ykyb")
 legacy_height = 0.8
 visual_bottom_offset = 0.5
+drop_root_path = NodePath("VisualPositionRoot/DropRoot")
 visual_drop_duration = 0.5
+drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
 position = Vector2(0, -15)
@@ -569,9 +573,11 @@ material = SubResource("ShaderMaterial_vna8o")
 texture = ExtResource("3_bypij")
 
 [node name="VisualPositionRoot" type="Node2D" parent="." unique_id=947227969]
+z_index = 128
 position = Vector2(0, -32)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualPositionRoot" unique_id=1464487730]
+z_index = 1
 position = Vector2(0, 1)
 sprite_frames = ExtResource("6_xk5t7")
 animation = &"Idle"
@@ -581,6 +587,9 @@ animation = &"Idle"
 [node name="Flame" parent="VisualPositionRoot/CandelRoot" unique_id=1005148100 instance=ExtResource("3_alfa0")]
 z_index = -4
 position = Vector2(0, -4)
+
+[node name="DropRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1388420991]
+position = Vector2(0, 21)
 
 [node name="SoundEffects" type="Node2D" parent="." unique_id=1208566524]
 

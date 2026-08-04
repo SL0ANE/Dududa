@@ -1,0 +1,282 @@
+extends Pawn
+class_name CandleDrop
+
+
+enum DropState {
+	INDEPENDENT,
+	ABSORBED,
+}
+
+
+@export_group("Nodes")
+
+@export_group("Absorb")
+@export var absorb_duration: float = 0.22
+@export var absorb_animation_param_path: StringName = &"parameters/conditions/is_absorbing"
+# Horizontal offset for alternating left/right layout while absorbed, in pixels.
+@export var absorb_alternate_x_offset_pixels: int = 1
+
+var _state: int = DropState.INDEPENDENT
+var _candle_man: Variant = null
+var _animation_tree: AnimationTree
+var _independent_parent: Node
+var _absorb_animating := false
+var _absorb_elapsed := 0.0
+var _absorb_start_global_position := Vector2.ZERO
+var _tree_param_keys := {}
+var _saved_movement_enabled := true
+var _saved_jump_enabled := true
+var _saved_pawn_collision_mode: int = PawnCollisionMode.SOFT_PUSH
+var _saved_z_index := 0
+
+# Public expression value for AnimationTree transition expressions.
+var expr_is_absorbing := false
+
+
+func _ready() -> void:
+	super._ready()
+	_independent_parent = get_parent()
+	_animation_tree = get_node_or_null(animation_tree_path) as AnimationTree
+	_cache_tree_parameter_keys()
+	_enter_independent_state()
+
+
+func _physics_process(delta: float) -> void:
+	if _state == DropState.INDEPENDENT:
+		super._physics_process(delta)
+		return
+
+	if _absorb_animating:
+		_update_absorb_animation(delta)
+	else:
+		_snap_to_absorbed_slot()
+
+
+func absorb_into(candle_man: Node, play_animation: bool = true, apply_candle_man_growth: bool = true) -> void:
+	if candle_man == null:
+		return
+
+	if _state == DropState.ABSORBED and _candle_man == candle_man and (not _absorb_animating):
+		return
+
+	if _state == DropState.ABSORBED:
+		detach_to_independent()
+
+	_candle_man = candle_man
+	_state = DropState.ABSORBED
+
+	# Logical changes happen at absorb start.
+	_saved_movement_enabled = movement_enabled
+	_saved_jump_enabled = jump_enabled
+	_saved_pawn_collision_mode = pawn_collision_mode
+	_saved_z_index = z_index
+	_candle_man.register_absorbed_drop(self, apply_candle_man_growth)
+	_update_absorbed_z_order_from_stack_index()
+	_set_collision_enabled(false)
+	movement_enabled = false
+	jump_enabled = false
+	velocity = Vector2.ZERO
+
+	_set_absorb_animation_flag(true)
+
+	if play_animation and absorb_duration > 0.0:
+		_absorb_animating = true
+		_absorb_elapsed = 0.0
+		_absorb_start_global_position = global_position
+		return
+
+	_finalize_absorb_visual_state()
+
+
+func detach_from_candle_man_due_jump() -> void:
+	if _state != DropState.ABSORBED:
+		return
+
+	if _candle_man != null and _absorb_animating and _candle_man.is_bottom_absorbed_drop(self):
+		_complete_absorb_animation_immediately()
+
+	detach_to_independent()
+
+
+func detach_to_independent() -> void:
+	if _state == DropState.INDEPENDENT:
+		return
+
+	var old_candle_man: Variant = _candle_man
+	if old_candle_man != null:
+		old_candle_man.unregister_absorbed_drop(self)
+
+	_absorb_animating = false
+	_absorb_elapsed = 0.0
+	_state = DropState.INDEPENDENT
+	_candle_man = null
+
+	var target_parent: Node = _independent_parent
+	if old_candle_man != null and is_instance_valid(old_candle_man) and old_candle_man.get_parent() != null:
+		target_parent = old_candle_man.get_parent()
+	if target_parent != null and get_parent() != target_parent:
+		reparent(target_parent, true)
+	_independent_parent = target_parent
+
+	_set_collision_enabled(true)
+	movement_enabled = _saved_movement_enabled
+	jump_enabled = _saved_jump_enabled
+	if pawn_collision_mode != _saved_pawn_collision_mode:
+		pawn_collision_mode = _saved_pawn_collision_mode
+		call_deferred("_refresh_all_pawn_collisions")
+	z_index = _saved_z_index
+
+	_enter_independent_state()
+
+
+func _enter_independent_state() -> void:
+	_set_absorb_animation_flag(false)
+	_set_animation_expression_source(self)
+
+
+func _update_absorb_animation(delta: float) -> void:
+	if _candle_man == null:
+		detach_to_independent()
+		return
+
+	_absorb_elapsed += maxf(delta, 0.0)
+	var t := clampf(_absorb_elapsed / maxf(absorb_duration, 0.0001), 0.0, 1.0)
+	var eased := sin(t * PI * 0.5)
+	var target_global := _get_current_absorb_target_global_position()
+	global_position = _absorb_start_global_position.lerp(target_global, eased)
+
+	if t >= 1.0:
+		_finalize_absorb_visual_state()
+
+
+func _finalize_absorb_visual_state() -> void:
+	_absorb_animating = false
+	_absorb_elapsed = 0.0
+	_set_absorb_animation_flag(false)
+
+	if _candle_man == null:
+		detach_to_independent()
+		return
+
+	var drop_root := _candle_man.drop_root as Node2D
+	if drop_root != null and get_parent() != drop_root:
+		reparent(drop_root, true)
+	_update_absorbed_z_order_from_stack_index()
+
+	_set_animation_expression_source(_candle_man.animation_bridge as Node)
+	_snap_to_absorbed_slot()
+
+
+func _complete_absorb_animation_immediately() -> void:
+	if _state != DropState.ABSORBED:
+		return
+
+	if not _absorb_animating:
+		return
+
+	global_position = _get_current_absorb_target_global_position()
+	_finalize_absorb_visual_state()
+
+
+func _get_current_absorb_target_global_position() -> Vector2:
+	if _candle_man == null:
+		return global_position
+
+	var idx: int = int(_candle_man.call("get_absorbed_drop_bottom_index", self))
+	if idx < 0:
+		idx = 0
+	return _candle_man.get_bottom_drop_global_position(idx) + _get_alternating_absorb_offset(idx)
+
+
+func _snap_to_absorbed_slot() -> void:
+	if _state != DropState.ABSORBED:
+		return
+	global_position = _get_current_absorb_target_global_position()
+
+
+func _set_collision_enabled(enabled: bool) -> void:
+	var collider := get_node_or_null(collision_shape_path) as CollisionShape2D
+	if collider != null:
+		collider.disabled = not enabled
+
+	var target_mode := PawnCollisionMode.SOFT_PUSH if enabled else PawnCollisionMode.NO_COLLISION
+	if pawn_collision_mode == target_mode:
+		return
+
+	if enabled:
+		pawn_collision_mode = PawnCollisionMode.SOFT_PUSH
+	else:
+		pawn_collision_mode = PawnCollisionMode.NO_COLLISION
+
+	# CandleDrop can stay in a custom physics loop while absorbed, so force a collision-table refresh.
+	call_deferred("_refresh_all_pawn_collisions")
+
+
+func _set_animation_expression_source(node: Node) -> void:
+	if _animation_tree == null:
+		return
+	if node == null:
+		return
+
+	_animation_tree.advance_expression_base_node = _animation_tree.get_path_to(node)
+
+
+func _set_absorb_animation_flag(value: bool) -> void:
+	expr_is_absorbing = value
+	_try_set_tree_parameter(absorb_animation_param_path, value)
+
+
+func _cache_tree_parameter_keys() -> void:
+	_tree_param_keys.clear()
+	if _animation_tree == null:
+		return
+
+	for p in _animation_tree.get_property_list():
+		if not (p is Dictionary):
+			continue
+		var name_value = (p as Dictionary).get("name", "")
+		var name_text := String(name_value)
+		if name_text.is_empty():
+			continue
+		_tree_param_keys[name_text] = true
+
+
+func _try_set_tree_parameter(path: StringName, value: Variant) -> bool:
+	if _animation_tree == null:
+		return false
+
+	var key := String(path)
+	if key.is_empty():
+		return false
+	if not _tree_param_keys.has(key):
+		return false
+
+	_animation_tree.set(path, value)
+	return true
+
+
+func _update_absorbed_z_order_from_stack_index() -> void:
+	if _candle_man == null:
+		return
+
+	var idx: int = int(_candle_man.call("get_absorbed_drop_bottom_index", self))
+	if idx < 0:
+		return
+
+	z_index = -idx
+
+
+func _get_alternating_absorb_offset(idx: int) -> Vector2:
+	var x := absi(absorb_alternate_x_offset_pixels)
+	if x <= 0:
+		return Vector2.ZERO
+
+	var phase := posmod(idx, 3)
+	if phase == 0:
+		return Vector2(-float(x), 0.0)
+	if phase == 1:
+		return Vector2.ZERO
+
+	return Vector2(float(x), 0.0)
+
+

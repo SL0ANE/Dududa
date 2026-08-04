@@ -129,6 +129,7 @@ var _coyote_time_left := 0.0
 var _jump_count_since_ground := 0
 var _last_pawn_collision_mode := -1
 var _was_moving := false
+var _was_on_pawn_floor := false
 var _pushing_prev := {}
 var _pushed_prev := {}
 
@@ -167,6 +168,7 @@ func _physics_process(delta: float) -> void:
 		call_deferred("_refresh_all_pawn_collisions")
 
 	var was_on_ground := is_on_floor()
+	var was_on_pawn_floor := _was_on_pawn_floor
 	var was_on_wall := is_on_wall()
 	if was_on_ground:
 		_coyote_time_left = coyote_time
@@ -208,11 +210,23 @@ func _physics_process(delta: float) -> void:
 	_apply_horizontal_velocity(move_axis, delta)
 	_apply_external_forces(delta)
 	_try_corner_correction(move_axis, delta)
+
+	if _should_skip_move_and_slide_for_idle_solid(move_axis, jump_pressed, was_on_ground):
+		velocity = Vector2.ZERO
+		_driven_velocity = Vector2.ZERO
+		_external_velocity = Vector2.ZERO
+		_update_animation_state(look_axis)
+		_process_move_lifecycle(0.0, move_axis, was_on_ground)
+		return
+
 	# Merge channels only at the end of the frame.
+	var pre_move_position := global_position
 	velocity = _driven_velocity + _external_velocity
 	var pre_slide_velocity := velocity
 	move_and_slide()
-	_try_floor_snap_after_slide(was_on_ground, jump_pressed)
+	_try_floor_snap_after_slide(was_on_ground, was_on_pawn_floor, jump_pressed)
+	_stabilize_idle_solid_pawn(move_axis, jump_pressed, pre_move_position)
+	_was_on_pawn_floor = _is_current_floor_from_pawn()
 	_apply_pawn_push_collisions()
 	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
 	# Reconcile channels with collision result to avoid drift over time.
@@ -466,12 +480,15 @@ func _try_corner_correction(move_axis: float, delta: float) -> void:
 			return
 
 
-func _try_floor_snap_after_slide(was_on_ground: bool, jump_pressed: bool) -> void:
+func _try_floor_snap_after_slide(was_on_ground: bool, was_on_pawn_floor: bool, jump_pressed: bool) -> void:
 	if jump_pressed:
 		return
 	if is_on_floor():
 		return
 	if not was_on_ground:
+		return
+	# Avoid treating stacked pawns as snap-floor; this prevents jitter and downhill force propagation.
+	if was_on_pawn_floor:
 		return
 	# Do not re-snap while moving upward (jump, knock-up, moving platforms, etc.).
 	if velocity.y < 0.0:
@@ -492,6 +509,59 @@ func _try_floor_snap_after_slide(was_on_ground: bool, jump_pressed: bool) -> voi
 	self.floor_snap_length = GameUnits.units_to_pixels(floor_snap_length_units)
 	apply_floor_snap()
 	self.floor_snap_length = original_floor_snap
+
+
+func _is_current_floor_from_pawn() -> bool:
+	if not is_on_floor():
+		return false
+
+	for i in range(get_slide_collision_count()):
+		var collision := get_slide_collision(i)
+		if collision == null:
+			continue
+		if collision.get_normal().y > -0.5:
+			continue
+		if collision.get_collider() is Pawn:
+			return true
+
+	return false
+
+
+func _stabilize_idle_solid_pawn(move_axis: float, jump_pressed: bool, pre_move_position: Vector2) -> void:
+	if pawn_collision_mode != PawnCollisionMode.SOLID:
+		return
+	if absf(move_axis) > 0.001:
+		return
+	if jump_pressed:
+		return
+
+	if not is_on_floor():
+		return
+
+	if is_equal_approx(global_position.x, pre_move_position.x) and is_equal_approx(global_position.y, pre_move_position.y):
+		return
+
+	# Grounded idle SOLID pawns should behave like static supports: lock both horizontal and vertical drift.
+	global_position = pre_move_position
+	velocity = Vector2.ZERO
+	_driven_velocity = Vector2.ZERO
+	_external_velocity = Vector2.ZERO
+
+
+func _should_skip_move_and_slide_for_idle_solid(move_axis: float, jump_pressed: bool, was_on_ground: bool) -> bool:
+	if pawn_collision_mode != PawnCollisionMode.SOLID:
+		return false
+	if not was_on_ground:
+		return false
+	if absf(move_axis) > 0.001:
+		return false
+	if jump_pressed:
+		return false
+	if absf(_external_velocity.x) > 0.001 or absf(_external_velocity.y) > 0.001:
+		return false
+
+	# Keep updating normally if support below was lost.
+	return test_move(global_transform, Vector2(0.0, 1.0))
 
 
 func _get_wall_collision_normal() -> Vector2:

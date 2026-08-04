@@ -1,4 +1,5 @@
 extends Pawn
+class_name CandleMan
 
 
 const JUMP_SFX_STREAMS: Array[AudioStream] = [
@@ -31,6 +32,8 @@ const JUMP_SFX_STREAMS: Array[AudioStream] = [
 # Assign a Node2D whose local origin is already at visual top.
 @export var visual_scale_path: NodePath = ^"VisualScaleRoot"
 @export var visual_position_path: NodePath = ^"VisualPositionRoot"
+@export var drop_root_path: NodePath = ^"DropRoot"
+@export var animation_bridge_path: NodePath = ^"AnimationBridge"
 
 @export_group("Visual")
 @export var visual_drop_duration: float = 0.14
@@ -39,6 +42,9 @@ const JUMP_SFX_STREAMS: Array[AudioStream] = [
 @export var jump_height_on_no_drops: float = 0.6
 @export var jump_time_to_peak_on_no_drops: float = 0.175
 @export var jump_time_to_fall_on_no_drops: float = 0.15
+
+@export_group("Drop Initialization")
+@export var drops_on_initialization: Array[PackedScene] = []
 
 var reference_original_height: float = 2.0
 
@@ -53,11 +59,16 @@ var _visual_position_base_position: Vector2 = Vector2.ZERO
 var _original_jump_height: float = 0.0
 var _original_jump_time_to_peak: float = 0.0
 var _original_jump_time_to_fall: float = 0.0
+var drop_root: Node2D
+var animation_bridge: Node
+var _absorbed_drops: Array[Node] = []
 
 func _ready() -> void:
 	super._ready()
 	_visual_scale_root = get_node_or_null(visual_scale_path)
 	_visual_position_root = get_node_or_null(visual_position_path)
+	drop_root = get_node_or_null(drop_root_path) as Node2D
+	animation_bridge = get_node_or_null(animation_bridge_path)
 	if _visual_scale_root and _visual_position_root:
 		_visual_scale_base_scale = _visual_scale_root.scale
 		_visual_scale_base_position = _visual_scale_root.position
@@ -65,6 +76,11 @@ func _ready() -> void:
 
 	else:
 		push_warning("CandleMan: visual roots not found; visual height changes are disabled.")
+
+	if drop_root == null:
+		push_warning("CandleMan: drop_root_path is invalid.")
+	if animation_bridge == null:
+		push_warning("CandleMan: animation_bridge_path is invalid.")
 
 	_original_jump_height = jump_height
 	_original_jump_time_to_peak = jump_time_to_peak
@@ -78,10 +94,12 @@ func _ready() -> void:
 	_sync_jump_state()
 	# On initialization keep the bottom edge fixed and apply visual scale immediately.
 	_apply_drop(drop_count, false, false)
+	_spawn_absorbed_drops_on_initialization()
 
 
 func on_jump(_jump_velocity: float) -> void:
 	super.on_jump(_jump_velocity)
+	_request_detach_bottom_drop_on_jump()
 
 	if height_per_drop <= 0.0:
 		return
@@ -187,3 +205,125 @@ func _sync_jump_state() -> void:
 		jump_height = _original_jump_height
 		jump_time_to_peak = _original_jump_time_to_peak
 		jump_time_to_fall = _original_jump_time_to_fall
+
+
+func register_absorbed_drop(drop: Node, apply_height_and_count: bool = true) -> void:
+	if drop == null:
+		return
+	if _absorbed_drops.has(drop):
+		return
+
+	# Keep order from top to bottom; newly absorbed drops are appended as the new bottom.
+	_absorbed_drops.append(drop)
+	if apply_height_and_count:
+		_apply_drop(drop_count + 1, true, true)
+
+
+func unregister_absorbed_drop(drop: Node) -> void:
+	if drop == null:
+		return
+
+	var idx := _absorbed_drops.find(drop)
+	if idx < 0:
+		return
+
+	_absorbed_drops.remove_at(idx)
+
+
+func is_bottom_absorbed_drop(drop: Node) -> bool:
+	if drop == null:
+		return false
+	if _absorbed_drops.is_empty():
+		return false
+
+	return _absorbed_drops[_absorbed_drops.size() - 1] == drop
+
+
+func get_absorbed_drop_bottom_index(drop: Node) -> int:
+	if drop == null:
+		return -1
+
+	return _absorbed_drops.find(drop)
+
+
+func get_bottom_drop_global_position(bottom_index: int = 0) -> Vector2:
+	var clamped_index := maxi(bottom_index, 0)
+	var step_units := maxf(height_per_drop, 0.0)
+	var step_px := GameUnits.units_to_pixels(step_units)
+
+	if drop_root != null and is_instance_valid(drop_root):
+		return drop_root.to_global(Vector2(0.0, step_px * float(clamped_index)))
+
+	return global_position + Vector2(0.0, step_px * float(clamped_index))
+
+
+func _request_detach_bottom_drop_on_jump() -> void:
+	if _absorbed_drops.is_empty():
+		return
+
+	var bottom := _absorbed_drops[_absorbed_drops.size() - 1]
+	if bottom == null or not is_instance_valid(bottom):
+		_absorbed_drops.remove_at(_absorbed_drops.size() - 1)
+		return
+
+	if bottom.has_method("detach_from_candle_man_due_jump"):
+		bottom.call("detach_from_candle_man_due_jump")
+
+
+func _spawn_absorbed_drops_on_initialization() -> void:
+	var spawn_count := maxi(drop_count, 0)
+	if spawn_count <= 0:
+		return
+
+	if drops_on_initialization.is_empty():
+		push_warning("CandleMan: drops_on_initialization is empty; no initial drops were spawned.")
+		return
+
+	for i in range(spawn_count):
+		var scene := _pick_random_drop_scene_for_initialization()
+		if scene == null:
+			continue
+
+		var instance := scene.instantiate()
+		if not (instance is Node2D):
+			push_warning("CandleMan: drops_on_initialization scene root must be Node2D.")
+			continue
+
+		var drop_node := instance as Node2D
+		add_child(drop_node)
+		drop_node.global_position = get_bottom_drop_global_position(i)
+
+		# Wait until the drop has completed _ready before driving absorb logic.
+		if drop_node.is_node_ready():
+			_try_absorb_initial_drop(drop_node)
+		else:
+			drop_node.ready.connect(_on_initial_drop_ready.bind(drop_node), CONNECT_ONE_SHOT)
+
+
+func _pick_random_drop_scene_for_initialization() -> PackedScene:
+	var valid_scenes: Array[PackedScene] = []
+	for scene in drops_on_initialization:
+		if scene != null:
+			valid_scenes.append(scene)
+
+	if valid_scenes.is_empty():
+		push_warning("CandleMan: drops_on_initialization contains no valid scenes.")
+		return null
+
+	var idx := randi() % valid_scenes.size()
+	return valid_scenes[idx]
+
+
+func _on_initial_drop_ready(drop_node: Node2D) -> void:
+	_try_absorb_initial_drop(drop_node)
+
+
+func _try_absorb_initial_drop(drop_node: Node2D) -> void:
+	if drop_node == null or not is_instance_valid(drop_node):
+		return
+	if not drop_node.has_method("absorb_into"):
+		push_warning("CandleMan: initial drop scene does not implement absorb_into(candle_man, play_animation).")
+		return
+
+	# Initial drops should match configured drop_count and not add extra height/count again.
+	drop_node.call("absorb_into", self, false, false)

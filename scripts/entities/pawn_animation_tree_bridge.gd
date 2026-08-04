@@ -18,6 +18,8 @@ const Units = preload("res://scripts/shared/game_units.gd")
 @export var param_facing_path: StringName = &"parameters/Locomotion/facing"
 @export var param_horizontal_speed_path: StringName = &"parameters/Locomotion/horizontal_speed"
 @export var param_vertical_speed_path: StringName = &"parameters/Locomotion/vertical_speed"
+@export var param_time_since_last_move_path: StringName = &"parameters/Locomotion/time_since_last_move"
+@export var param_time_since_last_jump_path: StringName = &"parameters/Jump/time_since_last_jump"
 @export var jump_request_path: StringName = &"parameters/Jump/request"
 @export var land_request_path: StringName = &"parameters/Land/request"
 @export var turn_request_path: StringName = &"parameters/Turn/request"
@@ -29,6 +31,8 @@ var _animation_tree: AnimationTree
 var _last_facing := 1
 var _tree_param_keys := {}
 var _last_state_name: StringName = &""
+var _time_since_last_move_seconds := 0.0
+var _time_since_last_jump_seconds := 0.0
 
 # Public expression values read by AnimationTree transition expressions.
 var expr_is_on_floor := false
@@ -39,7 +43,11 @@ var expr_facing := 1
 var expr_is_pushed := false # Kept for compatibility with existing tree expressions.
 var expr_airborne_progress := 0.0
 var expr_vertical_speed_norm := 0.0
+var expr_time_since_last_move_seconds := 0.0
+var expr_time_since_last_jump_seconds := 0.0
 
+# Always true, kept for compatibility with existing tree expressions.
+var expr_bridge_connected = true
 
 func _ready() -> void:
 	_pawn = get_node_or_null(pawn_path) as Pawn
@@ -51,6 +59,8 @@ func _ready() -> void:
 	if _animation_tree == null:
 		push_warning("PawnAnimationTreeBridge: animation_tree_path is invalid.")
 		return
+	if not _pawn.jumped.is_connected(_on_pawn_jumped):
+		_pawn.jumped.connect(_on_pawn_jumped)
 
 	_bind_expression_base()
 	_cache_tree_parameter_keys()
@@ -59,11 +69,11 @@ func _ready() -> void:
 	set_physics_process(true)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _pawn == null or _animation_tree == null:
 		return
 
-	_sync_expression_values()
+	_sync_expression_values(delta)
 	_sync_tree_parameters()
 	_log_state_transition_if_needed()
 
@@ -95,19 +105,37 @@ func _cache_tree_parameter_keys() -> void:
 		_tree_param_keys[name_text] = true
 
 
-func _sync_expression_values() -> void:
+func _sync_expression_values(delta: float) -> void:
 	if _pawn == null:
 		return
 
 	var grounded := _is_pawn_grounded()
+	var moving := _is_pawn_moving()
+	_update_elapsed_activity_timers(moving, delta)
+
 	expr_is_on_floor = grounded
-	expr_is_moving = _is_pawn_moving()
+	expr_is_moving = moving
 	expr_speed_x_abs = absf(_pawn.velocity.x)
 	expr_vertical_speed = _pawn.velocity.y
 	expr_facing = _get_pawn_facing()
 	expr_is_pushed = false
+	expr_time_since_last_move_seconds = _time_since_last_move_seconds
+	expr_time_since_last_jump_seconds = _time_since_last_jump_seconds
 
 	expr_airborne_progress = _compute_airborne_progress()
+
+
+func _update_elapsed_activity_timers(moving: bool, delta: float) -> void:
+	if moving:
+		_time_since_last_move_seconds = 0.0
+	else:
+		_time_since_last_move_seconds += maxf(delta, 0.0)
+
+	_time_since_last_jump_seconds += maxf(delta, 0.0)
+
+
+func _on_pawn_jumped(_jump_velocity: float) -> void:
+	_time_since_last_jump_seconds = 0.0
 
 
 func _compute_airborne_progress() -> float:
@@ -127,6 +155,8 @@ func _sync_tree_parameters() -> void:
 	_set_tree_parameter(param_facing_path, expr_facing)
 	_set_tree_parameter(param_horizontal_speed_path, expr_speed_x_abs)
 	_set_tree_parameter(param_vertical_speed_path, expr_vertical_speed)
+	_set_tree_parameter(param_time_since_last_move_path, expr_time_since_last_move_seconds)
+	_set_tree_parameter(param_time_since_last_jump_path, expr_time_since_last_jump_seconds)
 	_set_tree_parameter(param_air_progress_path, expr_airborne_progress)
 
 
