@@ -1,8 +1,6 @@
 extends "res://scripts/entities/controllers/pawn_controller.gd"
 class_name AIPawnController
 
-const CollisionMetrics = preload("res://scripts/shared/collision_metrics.gd")
-
 # Explicit target node path. If set and valid, it has priority over group search.
 @export var target_path: NodePath
 # Fallback target source: nearest Node2D in this group.

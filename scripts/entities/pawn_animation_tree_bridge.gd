@@ -12,24 +12,20 @@ const Units = preload("res://scripts/shared/game_units.gd")
 @export var debug_log_state_transitions := false
 
 @export_group("Tree Parameters")
-@export var param_is_on_floor_path: StringName = &"parameters/conditions/is_on_floor"
-@export var param_is_moving_path: StringName = &"parameters/conditions/is_moving"
-@export var param_move_axis_path: StringName = &"parameters/Locomotion/move_axis"
-@export var param_facing_path: StringName = &"parameters/Locomotion/facing"
-@export var param_horizontal_speed_path: StringName = &"parameters/Locomotion/horizontal_speed"
-@export var param_vertical_speed_path: StringName = &"parameters/Locomotion/vertical_speed"
-@export var param_time_since_last_move_path: StringName = &"parameters/Locomotion/time_since_last_move"
-@export var param_time_since_last_jump_path: StringName = &"parameters/Jump/time_since_last_jump"
-@export var jump_request_path: StringName = &"parameters/Jump/request"
-@export var land_request_path: StringName = &"parameters/Land/request"
-@export var turn_request_path: StringName = &"parameters/Turn/request"
-@export var pushed_request_path: StringName = &"parameters/Pushed/request"
 @export var param_air_progress_path: StringName = &"parameters/Jump/blend_position"
+@export var use_parameter_path_aliases := true
+
+const _TREE_PARAM_PATH_ALIASES := {
+	&"air_progress": [
+		&"parameters/Jump/blend_position",
+		&"parameters/EnabledState/Jump/blend_position",
+	],
+}
 
 var _pawn: Pawn
 var _animation_tree: AnimationTree
 var _last_facing := 1
-var _tree_param_keys := {}
+var _managed_trees := {}
 var _last_state_name: StringName = &""
 var _time_since_last_move_seconds := 0.0
 var _time_since_last_jump_seconds := 0.0
@@ -58,19 +54,17 @@ func _ready() -> void:
 		return
 	if _animation_tree == null:
 		push_warning("PawnAnimationTreeBridge: animation_tree_path is invalid.")
-		return
 	if not _pawn.jumped.is_connected(_on_pawn_jumped):
 		_pawn.jumped.connect(_on_pawn_jumped)
 
-	_bind_expression_base()
-	_cache_tree_parameter_keys()
-	_animation_tree.active = true
-	_last_state_name = _get_current_state_name()
+	if _animation_tree != null:
+		register_animation_tree(_animation_tree, _resolve_tree_animation_player(_animation_tree), force_bridge_expression_base)
+	_last_state_name = _get_current_state_name(_animation_tree)
 	set_physics_process(true)
 
 
 func _physics_process(delta: float) -> void:
-	if _pawn == null or _animation_tree == null:
+	if _pawn == null:
 		return
 
 	_sync_expression_values(delta)
@@ -78,31 +72,57 @@ func _physics_process(delta: float) -> void:
 	_log_state_transition_if_needed()
 
 
-func _bind_expression_base() -> void:
-	if _animation_tree == null:
+func register_animation_tree(animation_tree: AnimationTree, animation_player: AnimationPlayer = null, bind_expression_base := true) -> bool:
+	if animation_tree == null:
+		return false
+
+	if bind_expression_base:
+		animation_tree.advance_expression_base_node = animation_tree.get_path_to(self)
+
+	if animation_player != null:
+		_set_tree_animation_player(animation_tree, animation_player)
+
+	var tree_key := animation_tree.get_instance_id()
+	_managed_trees[tree_key] = {
+		"tree": animation_tree,
+		"param_keys": _build_tree_parameter_keys(animation_tree),
+		"resolved_param_paths": {},
+	}
+
+	animation_tree.active = true
+	_sync_tree_parameters_to_entry(_managed_trees[tree_key])
+	return true
+
+
+func unregister_animation_tree(animation_tree: AnimationTree) -> void:
+	if animation_tree == null:
 		return
 
-	if force_bridge_expression_base:
-		_animation_tree.advance_expression_base_node = _animation_tree.get_path_to(self)
+	var tree_key := animation_tree.get_instance_id()
+	if _managed_trees.has(tree_key):
+		_managed_trees.erase(tree_key)
+
+
+func register_animation_player(animation_player: AnimationPlayer, animation_tree: AnimationTree = null) -> bool:
+	if animation_player == null:
+		return false
+
+	var target_tree := animation_tree
+	if target_tree == null:
+		target_tree = _resolve_tree_for_animation_player(animation_player)
+	if target_tree == null:
+		return false
+
+	return register_animation_tree(target_tree, animation_player)
+
+
+func unregister_animation_player(animation_player: AnimationPlayer) -> void:
+	if animation_player == null:
 		return
 
-	if _animation_tree.advance_expression_base_node.is_empty():
-		_animation_tree.advance_expression_base_node = _animation_tree.get_path_to(_pawn)
-
-
-func _cache_tree_parameter_keys() -> void:
-	_tree_param_keys.clear()
-	if _animation_tree == null:
-		return
-
-	for p in _animation_tree.get_property_list():
-		if not (p is Dictionary):
-			continue
-		var name_value = (p as Dictionary).get("name", "")
-		var name_text := String(name_value)
-		if name_text.is_empty():
-			continue
-		_tree_param_keys[name_text] = true
+	var target_tree := _resolve_tree_for_animation_player(animation_player)
+	if target_tree != null:
+		unregister_animation_tree(target_tree)
 
 
 func _sync_expression_values(delta: float) -> void:
@@ -146,36 +166,141 @@ func _compute_airborne_progress() -> float:
 
 
 func _sync_tree_parameters() -> void:
-	if _animation_tree == null or _pawn == null:
+	if _pawn == null:
 		return
 
-	_set_tree_parameter(param_is_on_floor_path, expr_is_on_floor)
-	_set_tree_parameter(param_is_moving_path, expr_is_moving)
-	_set_tree_parameter(param_move_axis_path, _get_pawn_move_axis())
-	_set_tree_parameter(param_facing_path, expr_facing)
-	_set_tree_parameter(param_horizontal_speed_path, expr_speed_x_abs)
-	_set_tree_parameter(param_vertical_speed_path, expr_vertical_speed)
-	_set_tree_parameter(param_time_since_last_move_path, expr_time_since_last_move_seconds)
-	_set_tree_parameter(param_time_since_last_jump_path, expr_time_since_last_jump_seconds)
-	_set_tree_parameter(param_air_progress_path, expr_airborne_progress)
+	var stale_keys: Array[int] = []
+	for tree_key in _managed_trees.keys():
+		var entry = _managed_trees[tree_key]
+		var tree := entry.get("tree", null) as AnimationTree
+		if tree == null or not is_instance_valid(tree):
+			stale_keys.append(tree_key)
+			continue
+
+		_sync_tree_parameters_to_entry(entry)
+
+	for key in stale_keys:
+		_managed_trees.erase(key)
 
 
 func _set_tree_parameter(path: StringName, value: Variant) -> void:
-	_try_set_tree_parameter(path, value)
+	for entry in _managed_trees.values():
+		_try_set_tree_parameter_on_entry(entry, path, value)
 
 
-func _try_set_tree_parameter(path: StringName, value: Variant) -> bool:
-	if _animation_tree == null:
+func _sync_tree_parameters_to_entry(entry: Dictionary) -> void:
+	_set_tree_parameter_by_semantic(entry, &"air_progress", param_air_progress_path, expr_airborne_progress)
+
+
+func _set_tree_parameter_on_entry(entry: Dictionary, path: StringName, value: Variant) -> void:
+	_try_set_tree_parameter_on_entry(entry, path, value)
+
+
+func _set_tree_parameter_by_semantic(entry: Dictionary, semantic_key: StringName, preferred_path: StringName, value: Variant) -> void:
+	if not use_parameter_path_aliases:
+		_set_tree_parameter_on_entry(entry, preferred_path, value)
+		return
+
+	var resolved_paths: Dictionary = entry.get("resolved_param_paths", {}) as Dictionary
+	if resolved_paths.has(semantic_key):
+		var cached_path := resolved_paths.get(semantic_key, &"") as StringName
+		if _try_set_tree_parameter_on_entry(entry, cached_path, value):
+			return
+		resolved_paths.erase(semantic_key)
+
+	var candidate_paths: Array[StringName] = [preferred_path]
+	for alias_path in _get_semantic_alias_paths(semantic_key):
+		if alias_path == preferred_path:
+			continue
+		candidate_paths.append(alias_path)
+
+	for candidate_path in candidate_paths:
+		if _try_set_tree_parameter_on_entry(entry, candidate_path, value):
+			resolved_paths[semantic_key] = candidate_path
+			entry["resolved_param_paths"] = resolved_paths
+			return
+
+
+func _get_semantic_alias_paths(semantic_key: StringName) -> Array[StringName]:
+	var aliases: Array[StringName] = []
+	if not _TREE_PARAM_PATH_ALIASES.has(semantic_key):
+		return aliases
+
+	var raw_aliases = _TREE_PARAM_PATH_ALIASES.get(semantic_key, [])
+	if not (raw_aliases is Array):
+		return aliases
+
+	for alias_path in raw_aliases:
+		aliases.append(StringName(alias_path))
+
+	return aliases
+
+
+func _try_set_tree_parameter_on_entry(entry: Dictionary, path: StringName, value: Variant) -> bool:
+	var tree := entry.get("tree", null) as AnimationTree
+	if tree == null or not is_instance_valid(tree):
 		return false
 
 	var key := String(path)
 	if key.is_empty():
 		return false
-	if not _tree_param_keys.has(key):
+
+	var param_keys: Dictionary = entry.get("param_keys", {}) as Dictionary
+	if param_keys.is_empty():
+		return false
+	if not param_keys.has(key):
 		return false
 
-	_animation_tree.set(path, value)
+	tree.set(path, value)
 	return true
+
+
+func _build_tree_parameter_keys(animation_tree: AnimationTree) -> Dictionary:
+	var keys := {}
+	if animation_tree == null:
+		return keys
+
+	for p in animation_tree.get_property_list():
+		if not (p is Dictionary):
+			continue
+		var name_value = (p as Dictionary).get("name", "")
+		var name_text := String(name_value)
+		if name_text.is_empty():
+			continue
+		keys[name_text] = true
+
+	return keys
+
+
+func _set_tree_animation_player(animation_tree: AnimationTree, animation_player: AnimationPlayer) -> void:
+	if animation_tree == null or animation_player == null:
+		return
+
+	animation_tree.anim_player = animation_tree.get_path_to(animation_player)
+
+
+func _resolve_tree_animation_player(animation_tree: AnimationTree) -> AnimationPlayer:
+	if animation_tree == null:
+		return null
+	if animation_tree.anim_player.is_empty():
+		return null
+
+	return animation_tree.get_node_or_null(animation_tree.anim_player) as AnimationPlayer
+
+
+func _resolve_tree_for_animation_player(animation_player: AnimationPlayer) -> AnimationTree:
+	if animation_player == null or _managed_trees.is_empty():
+		return null
+
+	for entry in _managed_trees.values():
+		var tree := entry.get("tree", null) as AnimationTree
+		if tree == null or not is_instance_valid(tree):
+			continue
+		var resolved_player := _resolve_tree_animation_player(tree)
+		if resolved_player == animation_player:
+			return tree
+
+	return null
 
 
 func _is_pawn_grounded() -> bool:
@@ -214,11 +339,11 @@ func _get_pawn_facing() -> int:
 	return _last_facing
 
 
-func _get_current_state_name() -> StringName:
-	if _animation_tree == null:
+func _get_current_state_name(animation_tree: AnimationTree) -> StringName:
+	if animation_tree == null:
 		return &""
 
-	var playback = _animation_tree.get("parameters/playback")
+	var playback = animation_tree.get("parameters/playback")
 	if playback is AnimationNodeStateMachinePlayback:
 		return (playback as AnimationNodeStateMachinePlayback).get_current_node()
 
@@ -231,7 +356,7 @@ func _log_state_transition_if_needed() -> void:
 	if _pawn == null or _animation_tree == null:
 		return
 
-	var current_state := _get_current_state_name()
+	var current_state := _get_current_state_name(_animation_tree)
 	if current_state == _last_state_name:
 		return
 

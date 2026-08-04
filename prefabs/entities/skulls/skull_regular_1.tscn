@@ -1,9 +1,0 @@
-[gd_scene format=3 uid="uid://r3ch6byot4gm"]
-
-[ext_resource type="PackedScene" uid="uid://tlm4spedijs0" path="res://prefabs/entities/skulls/skull_regular_0.tscn" id="1_g74k8"]
-[ext_resource type="SpriteFrames" uid="uid://c07o3wlfr3kxi" path="res://aseprite/resources/entities/skulls/regular_1.aseprite" id="2_xi2a0"]
-
-[node name="SkullRegular0" unique_id=1514261021 instance=ExtResource("1_g74k8")]
-
-[node name="AnimatedSprite2D" parent="." index="0" unique_id=565443965]
-sprite_frames = ExtResource("2_xi2a0")

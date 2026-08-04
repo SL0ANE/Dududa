@@ -18,7 +18,6 @@ signal pushed_active(other: Pawn, mode: int, direction: float, overlap: float)
 signal pushed_ended(other: Pawn, mode: int)
 
 
-const GameUnits = preload("res://scripts/shared/game_units.gd")
 const PAWN_GROUP: StringName = &"pawn"
 
 enum PawnCollisionMode {

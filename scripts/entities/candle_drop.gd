@@ -28,9 +28,13 @@ var _saved_movement_enabled := true
 var _saved_jump_enabled := true
 var _saved_pawn_collision_mode: int = PawnCollisionMode.SOFT_PUSH
 var _saved_z_index := 0
+var _current_expression_source: Node = null
 
 # Public expression value for AnimationTree transition expressions.
 var expr_is_absorbing := false
+
+# Always true, kept for compatibility with existing tree expressions.
+var expr_bridge_connected = false
 
 
 func _ready() -> void:
@@ -39,6 +43,10 @@ func _ready() -> void:
 	_animation_tree = get_node_or_null(animation_tree_path) as AnimationTree
 	_cache_tree_parameter_keys()
 	_enter_independent_state()
+
+
+func _exit_tree() -> void:
+	_detach_from_animation_bridge(_current_expression_source)
 
 
 func _physics_process(delta: float) -> void:
@@ -217,8 +225,42 @@ func _set_animation_expression_source(node: Node) -> void:
 		return
 	if node == null:
 		return
+	if _current_expression_source == node:
+		return
+
+	_detach_from_animation_bridge(_current_expression_source)
 
 	_animation_tree.advance_expression_base_node = _animation_tree.get_path_to(node)
+	_current_expression_source = node
+	_attach_to_animation_bridge(node)
+
+
+func _attach_to_animation_bridge(node: Node) -> void:
+	if _animation_tree == null or node == null:
+		return
+	if not node.has_method("register_animation_tree"):
+		return
+
+	var animation_player := _resolve_animation_player_for_tree()
+	node.call("register_animation_tree", _animation_tree, animation_player)
+
+
+func _detach_from_animation_bridge(node: Node) -> void:
+	if _animation_tree == null or node == null:
+		return
+	if not node.has_method("unregister_animation_tree"):
+		return
+
+	node.call("unregister_animation_tree", _animation_tree)
+
+
+func _resolve_animation_player_for_tree() -> AnimationPlayer:
+	if _animation_tree == null:
+		return null
+	if _animation_tree.anim_player.is_empty():
+		return null
+
+	return _animation_tree.get_node_or_null(_animation_tree.anim_player) as AnimationPlayer
 
 
 func _set_absorb_animation_flag(value: bool) -> void:
