@@ -14,8 +14,8 @@
 [ext_resource type="AnimationNodeStateMachine" uid="uid://47x7u37ky2pb" path="res://animations/candle_man.tres" id="9_28c76"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="10_2s74i"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3mno2"]
-radius = 6.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jxkf8"]
+size = Vector2(10, 30)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vna8o"]
 shader = ExtResource("2_qtkea")
@@ -583,7 +583,7 @@ footstep_sfx_stream_b = ExtResource("4_2s74i")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
 position = Vector2(0, -15)
-shape = SubResource("CapsuleShape2D_3mno2")
+shape = SubResource("RectangleShape2D_jxkf8")
 
 [node name="VisualScaleRoot" type="Node2D" parent="." unique_id=1001536211]
 position = Vector2(0, -10)
