@@ -19,6 +19,7 @@ signal pushed_ended(other: Pawn, mode: int)
 
 
 const PAWN_GROUP: StringName = &"pawn"
+const CONTACT_EVENTS_ARM_DELAY_FRAMES := 2
 
 enum PawnCollisionMode {
 	SOFT_PUSH,
@@ -98,6 +99,13 @@ enum PawnCollisionMode {
 @export_group("Audio")
 # Relative path to jump sound player node.
 @export var jump_sfx_player_path: NodePath = ^"SoundEffects/SFXJump"
+# Relative path to landing sound player node.
+@export var land_sfx_player_path: NodePath = ^"SoundEffects/SFXLand"
+# Relative path to footstep sound player node.
+@export var footstep_sfx_player_path: NodePath = ^"SoundEffects/SFXFootstep"
+# Optional alternating footstep streams.
+@export var footstep_sfx_stream_a: AudioStream
+@export var footstep_sfx_stream_b: AudioStream
 
 @export_group("Nodes")
 # Relative path to controller node used to build commands.
@@ -116,6 +124,9 @@ var _facing := 1
 var _controller: PawnController
 var _collider: CollisionShape2D
 var _jump_sfx_player: AudioStreamPlayer2D
+var _land_sfx_player: AudioStreamPlayer2D
+var _footstep_sfx_player: AudioStreamPlayer2D
+var _next_footstep_sfx_index := 0
 # Driven velocity is produced by the pawn movement model (input, jump profile).
 var _driven_velocity := Vector2.ZERO
 # External velocity is produced by gameplay systems (hit, wind, explosion).
@@ -129,6 +140,7 @@ var _jump_count_since_ground := 0
 var _last_pawn_collision_mode := -1
 var _was_moving := false
 var _was_on_pawn_floor := false
+var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
 var _pushed_prev := {}
 
@@ -151,10 +163,13 @@ func _ready() -> void:
 	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
 	_jump_sfx_player = get_node_or_null(jump_sfx_player_path) as AudioStreamPlayer2D
+	_land_sfx_player = get_node_or_null(land_sfx_player_path) as AudioStreamPlayer2D
+	_footstep_sfx_player = get_node_or_null(footstep_sfx_player_path) as AudioStreamPlayer2D
 	# Ensure gravity/jump math has valid profile values even before first jump.
 	_jump_height_on_jump = jump_height
 	_jump_time_to_peak_on_jump = jump_time_to_peak
 	_jump_time_to_fall_on_jump = jump_time_to_fall
+	_contact_events_arm_frames_left = CONTACT_EVENTS_ARM_DELAY_FRAMES
 	# if _animation_tree:
 		# _animation_tree.active = true
 
@@ -216,6 +231,7 @@ func _physics_process(delta: float) -> void:
 		_external_velocity = Vector2.ZERO
 		_update_animation_state(look_axis)
 		_process_move_lifecycle(0.0, move_axis, was_on_ground)
+		_tick_contact_event_arm_delay()
 		return
 
 	# Merge channels only at the end of the frame.
@@ -233,6 +249,7 @@ func _physics_process(delta: float) -> void:
 	_update_animation_state(look_axis)
 	var current_velocity := GameUnits.pixels_to_units(velocity.x)
 	_process_move_lifecycle(current_velocity, move_axis, is_on_floor())
+	_tick_contact_event_arm_delay()
 
 
 func _build_command(delta: float) -> Dictionary:
@@ -435,6 +452,9 @@ func _update_animation_state(look_axis: float) -> void:
 
 
 func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_velocity: Vector2) -> void:
+	if _contact_events_arm_frames_left > 0:
+		return
+
 	if not was_on_ground and is_on_floor():
 		var impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
 		on_landed(impact_velocity)
@@ -445,6 +465,12 @@ func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_v
 		var wall_impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
 		on_wall_hit(wall_normal, wall_impact_velocity)
 		wall_hit.emit(wall_normal, wall_impact_velocity)
+
+
+func _tick_contact_event_arm_delay() -> void:
+	if _contact_events_arm_frames_left <= 0:
+		return
+	_contact_events_arm_frames_left -= 1
 
 
 func _try_corner_correction(move_axis: float, delta: float) -> void:
@@ -953,6 +979,51 @@ func _get_jump_sfx_stream_for_jump(_jump_velocity: float) -> AudioStream:
 	return null
 
 
+func _play_land_sfx(stream_override: AudioStream = null) -> void:
+	if _land_sfx_player == null:
+		return
+
+	var stream_to_play := stream_override
+	if stream_to_play == null:
+		stream_to_play = _land_sfx_player.stream
+	if stream_to_play == null:
+		return
+
+	if _land_sfx_player.stream != stream_to_play:
+		_land_sfx_player.stream = stream_to_play
+	_land_sfx_player.play()
+
+
+func _get_land_sfx_stream_for_landing(_impact_velocity: Vector2) -> AudioStream:
+	return null
+
+
+func play_footstep_sfx() -> void:
+	if _footstep_sfx_player == null:
+		return
+	if not is_on_floor():
+		return
+	if absf(velocity.x) <= GameUnits.units_to_pixels(moving_threshold):
+		return
+
+	var stream_to_play: AudioStream = null
+	if footstep_sfx_stream_a != null and footstep_sfx_stream_b != null:
+		stream_to_play = footstep_sfx_stream_a if _next_footstep_sfx_index == 0 else footstep_sfx_stream_b
+		_next_footstep_sfx_index = (_next_footstep_sfx_index + 1) % 2
+	elif footstep_sfx_stream_a != null:
+		stream_to_play = footstep_sfx_stream_a
+	elif footstep_sfx_stream_b != null:
+		stream_to_play = footstep_sfx_stream_b
+	else:
+		stream_to_play = _footstep_sfx_player.stream
+
+	if stream_to_play == null:
+		return
+	if _footstep_sfx_player.stream != stream_to_play:
+		_footstep_sfx_player.stream = stream_to_play
+	_footstep_sfx_player.play()
+
+
 # Hooks for subclass extension.
 func on_jump(jump_velocity: float) -> void:
 	_play_jump_sfx(_get_jump_sfx_stream_for_jump(jump_velocity))
@@ -979,7 +1050,7 @@ func on_move_ended(_current_velocity: float, _input_axis: float, _grounded: bool
 
 
 func on_landed(_impact_velocity: Vector2) -> void:
-	pass
+	_play_land_sfx(_get_land_sfx_stream_for_landing(_impact_velocity))
 
 
 func on_wall_hit(_collision_normal: Vector2, _impact_velocity: Vector2) -> void:

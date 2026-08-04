@@ -6,10 +6,13 @@
 [ext_resource type="PackedScene" uid="uid://dcq0pcl4gcims" path="res://prefabs/vfx/flame.tscn" id="3_alfa0"]
 [ext_resource type="Texture2D" uid="uid://dy1dukit4w1br" path="res://aseprite/resources/vfx/death_matter/mask.png" id="3_bypij"]
 [ext_resource type="Script" uid="uid://5jnnbaskc2h7" path="res://scripts/entities/controllers/player_pawn_controller.gd" id="3_dwk1e"]
+[ext_resource type="AudioStream" uid="uid://68coffbsv62i" path="res://sound_effects/character/footstep/0.wav" id="3_eodcc"]
+[ext_resource type="AudioStream" uid="uid://b22oyloos2ym3" path="res://sound_effects/character/footstep/1.wav" id="4_2s74i"]
 [ext_resource type="AudioStream" uid="uid://dkl8vlovvm3np" path="res://sound_effects/character/jump/0.wav" id="6_28c76"]
 [ext_resource type="SpriteFrames" uid="uid://uwwwli8n4m4x" path="res://aseprite/resources/entities/characters/death_control/0.aseprite" id="6_xk5t7"]
 [ext_resource type="Script" uid="uid://dgks5in2lbqg7" path="res://scripts/entities/pawn_animation_tree_bridge.gd" id="8_xk5t7"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://47x7u37ky2pb" path="res://animations/candle_man.tres" id="9_28c76"]
+[ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="10_2s74i"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_3mno2"]
 radius = 6.0
@@ -437,6 +440,23 @@ tracks/2/keys = {
 "update": 1,
 "values": [0.0, -3.0, -4.0, -3.0]
 }
+tracks/3/type = "method"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"values": [{
+"args": [],
+"method": &"play_footstep_sfx"
+}, {
+"args": [],
+"method": &"play_footstep_sfx"
+}]
+}
 
 [sub_resource type="Animation" id="Animation_benuo"]
 length = 0.001
@@ -558,6 +578,8 @@ visual_bottom_offset = 0.5
 drop_root_path = NodePath("VisualPositionRoot/DropRoot")
 visual_drop_duration = 0.5
 drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
+footstep_sfx_stream_a = ExtResource("3_eodcc")
+footstep_sfx_stream_b = ExtResource("4_2s74i")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1520261360]
 position = Vector2(0, -15)
@@ -596,6 +618,16 @@ position = Vector2(0, 21)
 [node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1964087336]
 stream = ExtResource("6_28c76")
 volume_db = 4.0
+attenuation = 0.0
+
+[node name="SFXLand" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=156804303]
+stream = ExtResource("10_2s74i")
+volume_db = 3.0
+attenuation = 0.0
+
+[node name="SFXFootstep" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1533899174]
+stream = ExtResource("3_eodcc")
+volume_db = -4.0
 attenuation = 0.0
 
 [node name="Controller" type="Node" parent="." unique_id=973715378]

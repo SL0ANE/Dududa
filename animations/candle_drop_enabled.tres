@@ -86,7 +86,7 @@ advance_expression = "expr_is_on_floor and not expr_is_moving"
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_c8kv8"]
 switch_mode = 2
 advance_mode = 2
-advance_expression = "randf() > 0.0625
+advance_expression = "randf() < 0.00390625
 "
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_l54ob"]
@@ -104,7 +104,7 @@ states/Blink/node = SubResource("AnimationNodeAnimation_30ymf")
 states/Blink/position = Vector2(171.92184, 330.74072)
 states/End/position = Vector2(769, 73)
 states/Idle/node = SubResource("AnimationNodeAnimation_jgdjt")
-states/Idle/position = Vector2(173.92184, 209.22221)
+states/Idle/position = Vector2(172.77779, 209.22221)
 states/Jump/node = SubResource("AnimationNodeBlendSpace1D_tq5n7")
 states/Jump/position = Vector2(172.65158, 107.49383)
 states/Land/node = SubResource("AnimationNodeAnimation_gygc3")
@@ -113,4 +113,4 @@ states/Move/node = SubResource("AnimationNodeAnimation_j2m6s")
 states/Move/position = Vector2(465, 56.222214)
 states/Start/position = Vector2(-178.66667, 200.29628)
 transitions = ["Start", "Idle", SubResource("AnimationNodeStateMachineTransition_hreaw"), "Idle", "Move", SubResource("AnimationNodeStateMachineTransition_idle_to_move"), "Idle", "Jump", SubResource("AnimationNodeStateMachineTransition_35c0p"), "Jump", "Air", SubResource("AnimationNodeStateMachineTransition_gygc3"), "Air", "Land", SubResource("AnimationNodeStateMachineTransition_bj54l"), "Jump", "Land", SubResource("AnimationNodeStateMachineTransition_jubpg"), "Land", "Idle", SubResource("AnimationNodeStateMachineTransition_axrf5"), "Land", "Jump", SubResource("AnimationNodeStateMachineTransition_q4th4"), "Move", "Jump", SubResource("AnimationNodeStateMachineTransition_tq5n7"), "Move", "Idle", SubResource("AnimationNodeStateMachineTransition_move_to_idle"), "Idle", "Blink", SubResource("AnimationNodeStateMachineTransition_c8kv8"), "Blink", "Idle", SubResource("AnimationNodeStateMachineTransition_l54ob"), "Land", "Move", SubResource("AnimationNodeStateMachineTransition_ck3r4")]
-graph_offset = Vector2(-178, -40)
+graph_offset = Vector2(-111, 113)
