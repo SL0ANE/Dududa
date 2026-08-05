@@ -117,7 +117,7 @@ enum PawnCollisionMode {
 # Optional sprite node path. Empty is allowed for multi-part visuals.
 @export var sprite_path: NodePath = ^"AnimatedSprite2D"
 # Default art facing direction used to compute flip_h.
-@export_enum("Left", "Right") var sprite_default_facing := -1
+@export_enum("Left", "Mid", "Right") var sprite_default_facing := 0
 
 var _facing := 1
 
@@ -435,16 +435,16 @@ func _sync_velocity_components_after_slide() -> void:
 func _update_animation_state(look_axis: float) -> void:
 	var old_facing := _facing
 	if not is_zero_approx(look_axis):
-		_facing = -1 if look_axis < 0.0 else 1
+		_facing = 0 if look_axis < 0.0 else 2
 	elif not is_zero_approx(velocity.x):
-		_facing = -1 if velocity.x < 0.0 else 1
+		_facing = 0 if velocity.x < 0.0 else 2
 
 	if old_facing != _facing:
 		on_turn(old_facing, _facing)
 		turned.emit(old_facing, _facing)
 
-	if _sprite:
-		var clamped_default_facing := -1 if sprite_default_facing < 0 else 1
+	if _sprite and sprite_default_facing != 1:
+		var clamped_default_facing := 0 if sprite_default_facing < 1 else 2
 		_sprite.flip_h = _facing != clamped_default_facing
 
 

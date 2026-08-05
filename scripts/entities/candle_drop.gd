@@ -16,6 +16,29 @@ enum DropState {
 # Horizontal offset for alternating left/right layout while absorbed, in pixels.
 @export var absorb_alternate_x_offset_pixels: int = 1
 
+@export_group("Appearance")
+var _sprite_presets: Array[SpriteFrames] = []
+@export var sprite_presets: Array[SpriteFrames]:
+	get:
+		return _sprite_presets
+	set(value):
+		_sprite_presets = value
+		_update_sprite_frames()
+@export var sprite_preset_index: int = 0:
+	get:
+		return _sprite_preset_index
+	set(value):
+		_sprite_preset_index = value
+		_update_sprite_frames()
+var _sprite_preset_index: int = 0
+@export_enum("Left", "Right") var current_facing: int = -1:
+	get:
+		return _current_facing
+	set(value):
+		_current_facing = value
+		_update_facing_flip()
+var _current_facing: int = -1
+
 var _state: int = DropState.INDEPENDENT
 var _candle_man: Variant = null
 var _animation_tree: AnimationTree
@@ -38,6 +61,7 @@ var expr_bridge_connected = false
 
 
 func _ready() -> void:
+	_update_appearance()
 	super._ready()
 	_independent_parent = get_parent()
 	_animation_tree = get_node_or_null(animation_tree_path) as AnimationTree
@@ -69,6 +93,10 @@ func absorb_into(candle_man: Node, play_animation: bool = true, apply_candle_man
 
 	if _state == DropState.ABSORBED:
 		detach_to_independent()
+		
+	_current_facing = 0 if randf() < 0.5 else 1
+	_sprite_preset_index = randi() % max(sprite_presets.size(), 1)
+	_update_appearance()
 
 	_candle_man = candle_man
 	_state = DropState.ABSORBED
@@ -304,7 +332,7 @@ func _update_absorbed_z_order_from_stack_index() -> void:
 	if idx < 0:
 		return
 
-	z_index = -idx
+	z_index = - idx
 
 
 func _get_alternating_absorb_offset(idx: int) -> Vector2:
@@ -320,4 +348,24 @@ func _get_alternating_absorb_offset(idx: int) -> Vector2:
 
 	return Vector2(float(x), 0.0)
 
+func _update_appearance() -> void:
+	_update_sprite_frames()
+	_update_facing_flip()
 
+
+func _update_sprite_frames() -> void:
+	if _sprite == null:
+		return
+	if sprite_presets.size() <= 0:
+		return
+
+	var preset_idx: int = clampi(sprite_preset_index, 0, sprite_presets.size() - 1)
+	var preset := sprite_presets[preset_idx]
+	_sprite.frames = preset
+
+
+func _update_facing_flip() -> void:
+	if _sprite == null:
+		return
+
+	_sprite.flip_h = current_facing > 0
