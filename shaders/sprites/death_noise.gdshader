@@ -69,8 +69,8 @@ void vertex() {
 float sample_noise(vec2 uv, float width, float height, vec2 offset)
 {
 	float scale = 5.0;
-	vec4 noise0 = modified_voronoi(vec3(uv, TIME * 2.0), offset, 6.0, 6.0, width, height, 0.75) * scale;
-	vec4 noise1 = modified_voronoi(vec3(uv, TIME * 1.0), offset, 8.0, 6.0, width, height, 0.75) * scale;
+	vec4 noise0 = modified_voronoi(vec3(uv, TIME * 2.0), offset, 6.0, 5.0, width, height, 0.75) * scale;
+	vec4 noise1 = modified_voronoi(vec3(uv, TIME * 1.0), offset, 8.0, 5.0, width, height, 0.75) * scale;
 
 	float val = min(noise0.w, noise1.w);
 

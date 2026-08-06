@@ -6,6 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="3_tqhs2"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="4_3ljwn"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="4_jxkf8"]
+[ext_resource type="AudioStream" uid="uid://1m0tjuksnkmm" path="res://sound_effects/character/land/1.wav" id="5_ndhht"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j3s1n"]
 radius = 4.0
@@ -416,10 +417,13 @@ _data = {
 }
 
 [node name="SkullRegular0" type="CharacterBody2D" unique_id=1514261021]
+floor_max_angle = 1.3089969
 script = ExtResource("1_7lyv0")
 sprite_presets = Array[SpriteFrames]([ExtResource("2_tqhs2"), ExtResource("3_j3s1n")])
 pawn_collision_mode = 2
 push_ground_only = false
+land_sfx_streams = Array[AudioStream]([ExtResource("4_3ljwn"), ExtResource("5_ndhht")])
+land_sfx_distance_thresholds = Array[float]([4.0])
 collision_shape_paths = Array[NodePath]([NodePath("CollisionShape2D"), NodePath("CollisionShape2D2")])
 sprite_default_facing = 1
 

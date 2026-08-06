@@ -8,7 +8,7 @@ signal moved(current_velocity: float, input_axis: float, grounded: bool)
 signal move_started(current_velocity: float, input_axis: float, grounded: bool)
 signal move_active(current_velocity: float, input_axis: float, grounded: bool)
 signal move_ended(current_velocity: float, input_axis: float, grounded: bool)
-signal landed(impact_velocity: Vector2)
+signal landed(impact_velocity: Vector2, fall_distance_units: float)
 signal wall_hit(collision_normal: Vector2, impact_velocity: Vector2)
 signal push_started(other: Pawn, mode: int, direction: float)
 signal push_active(other: Pawn, mode: int, direction: float, overlap: float)
@@ -101,6 +101,10 @@ enum PawnCollisionMode {
 @export var jump_sfx_player_path: NodePath = ^"SoundEffects/SFXJump"
 # Relative path to landing sound player node.
 @export var land_sfx_player_path: NodePath = ^"SoundEffects/SFXLand"
+# Optional landing sound effects selected by fall distance thresholds.
+@export var land_sfx_streams: Array[AudioStream] = []
+# Fall-distance thresholds for landing sound effects, expected in ascending order and one fewer than the sound effect count.
+@export var land_sfx_distance_thresholds: Array[float] = []
 # Relative path to footstep sound player node.
 @export var footstep_sfx_player_path: NodePath = ^"SoundEffects/SFXFootstep"
 # Optional alternating footstep streams.
@@ -141,6 +145,9 @@ var _jump_count_since_ground := 0
 var _last_pawn_collision_mode := -1
 var _was_moving := false
 var _was_on_pawn_floor := false
+var _airborne_start_y_px := INF
+var _airborne_peak_y_px := INF
+var last_fall_distance_units := 0.0
 var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
 var _pushed_prev := {}
@@ -189,8 +196,15 @@ func _physics_process(delta: float) -> void:
 	if was_on_ground:
 		_coyote_time_left = coyote_time
 		_jump_count_since_ground = 0
+		_airborne_start_y_px = INF
+		_airborne_peak_y_px = INF
 	else:
 		_coyote_time_left = maxf(_coyote_time_left - delta, 0.0)
+		if is_inf(_airborne_start_y_px):
+			_airborne_start_y_px = global_position.y
+			_airborne_peak_y_px = global_position.y
+		elif global_position.y < _airborne_peak_y_px:
+			_airborne_peak_y_px = global_position.y
 
 	if was_on_ground:
 		_driven_velocity.y = 0.0
@@ -454,8 +468,16 @@ func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_v
 
 	if not was_on_ground and is_on_floor():
 		var impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
-		on_landed(impact_velocity)
-		landed.emit(impact_velocity)
+		var fall_distance_units := 0.0
+		if not is_inf(_airborne_start_y_px):
+			var landing_y_px := global_position.y
+			var fall_distance_px := maxf(0.0, landing_y_px - _airborne_peak_y_px)
+			fall_distance_units = GameUnits.pixels_to_units(fall_distance_px)
+			last_fall_distance_units = fall_distance_units
+			_airborne_start_y_px = INF
+			_airborne_peak_y_px = INF
+		on_landed(impact_velocity, fall_distance_units)
+		landed.emit(impact_velocity, fall_distance_units)
 
 	if not was_on_wall and is_on_wall():
 		var wall_normal := _get_wall_collision_normal()
@@ -1036,8 +1058,30 @@ func _play_land_sfx(stream_override: AudioStream = null) -> void:
 	_land_sfx_player.play()
 
 
-func _get_land_sfx_stream_for_landing(_impact_velocity: Vector2) -> AudioStream:
-	return null
+func _get_land_sfx_stream_for_landing(_impact_velocity: Vector2, fall_distance_units: float) -> AudioStream:
+	if land_sfx_streams.is_empty():
+		return null
+
+	if land_sfx_streams.size() == 1:
+		return land_sfx_streams[0]
+
+	if land_sfx_distance_thresholds.is_empty():
+		return land_sfx_streams[0]
+
+	print("land_distance: " + str(fall_distance_units))
+
+	var threshold_count := land_sfx_distance_thresholds.size()
+	var stream_count := land_sfx_streams.size()
+	if threshold_count >= stream_count:
+		threshold_count = maxf(0.0, float(stream_count - 1))
+
+	for index in range(int(threshold_count)):
+		var threshold := land_sfx_distance_thresholds[index]
+		if fall_distance_units < threshold:
+			return land_sfx_streams[index]
+
+	var last_index := int(minf(float(stream_count - 1), float(threshold_count)))
+	return land_sfx_streams[last_index]
 
 
 func play_footstep_sfx() -> void:
@@ -1091,8 +1135,8 @@ func on_move_ended(_current_velocity: float, _input_axis: float, _grounded: bool
 	pass
 
 
-func on_landed(_impact_velocity: Vector2) -> void:
-	_play_land_sfx(_get_land_sfx_stream_for_landing(_impact_velocity))
+func on_landed(_impact_velocity: Vector2, fall_distance_units: float = 0.0) -> void:
+	_play_land_sfx(_get_land_sfx_stream_for_landing(_impact_velocity, fall_distance_units))
 
 
 func on_wall_hit(_collision_normal: Vector2, _impact_velocity: Vector2) -> void:
