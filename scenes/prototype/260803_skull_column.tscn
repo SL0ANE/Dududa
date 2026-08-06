@@ -5,7 +5,6 @@
 [ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="6_d33wo"]
 [ext_resource type="PackedScene" uid="uid://day2tad1yvxs2" path="res://prefabs/entities/depth_control/death_control_wizard.tscn" id="7_6hxeo"]
 [ext_resource type="Texture2D" uid="uid://b5styvcdp1b02" path="res://aseprite/resources/entities/note_tables/content/debug/0001.png" id="7_mbbcq"]
-[ext_resource type="PackedScene" uid="uid://bsharveg5e1vc" path="res://prefabs/entities/mind_control/mine_control_wizard_npc.tscn" id="7_xymdy"]
 [ext_resource type="Texture2D" uid="uid://ba0lajfoc4u0d" path="res://aseprite/resources/entities/note_tables/content/debug/0002.png" id="8_xymdy"]
 
 [sub_resource type="TileMapPattern" id="TileMapPattern_epn7r"]
@@ -201,6 +200,3 @@ content_texture = ExtResource("7_mbbcq")
 position = Vector2(-40, 40)
 drop_count = 16
 max_jump_count = 8
-
-[node name="MindControlWizardNPC" parent="." unique_id=1275284154 instance=ExtResource("7_xymdy")]
-position = Vector2(71, 40)

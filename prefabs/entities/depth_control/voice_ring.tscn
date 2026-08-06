@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://meh0rxill3lo"]
+
+[ext_resource type="Shader" uid="uid://slli6c8q8nt8" path="res://shaders/sprites/voice_ring.gdshader" id="1_0n7tf"]
+[ext_resource type="Texture2D" uid="uid://bcgehvf3i2kuq" path="res://aseprite/resources/vfx/voice_ring/mask.png" id="1_1tdth"]
+[ext_resource type="Script" uid="uid://536m0jdi66m3" path="res://scripts/entities/voice_ring.gd" id="2_0n7tf"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1tdth"]
+shader = ExtResource("1_0n7tf")
+shader_parameter/base_color = Color(1, 0.047, 0.086, 1)
+shader_parameter/progress = 0.50000002375
+shader_parameter/radius_start = 8.0
+shader_parameter/radius_end = 64.0
+
+[node name="VoiceRing" type="Sprite2D" unique_id=1995916372]
+material = SubResource("ShaderMaterial_1tdth")
+texture = ExtResource("1_1tdth")
+script = ExtResource("2_0n7tf")
