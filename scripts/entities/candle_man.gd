@@ -3,14 +3,25 @@ class_name CandleMan
 
 
 const JUMP_SFX_STREAMS: Array[AudioStream] = [
-	preload("res://sound_effects/character/jump/0.wav"),
-	preload("res://sound_effects/character/jump/1.wav"),
-	preload("res://sound_effects/character/jump/2.wav"),
-	preload("res://sound_effects/character/jump/3.wav"),
-	preload("res://sound_effects/character/jump/4.wav"),
-	preload("res://sound_effects/character/jump/5.wav"),
-	preload("res://sound_effects/character/jump/6.wav"),
 	preload("res://sound_effects/character/jump/7.wav"),
+	preload("res://sound_effects/character/jump/6.wav"),
+	preload("res://sound_effects/character/jump/5.wav"),
+	preload("res://sound_effects/character/jump/4.wav"),
+	preload("res://sound_effects/character/jump/3.wav"),
+	preload("res://sound_effects/character/jump/2.wav"),
+	preload("res://sound_effects/character/jump/1.wav"),
+	preload("res://sound_effects/character/jump/0.wav"),
+]
+
+const INTERACT_SFX_STREAMS: Array[AudioStream] = [
+	preload("res://sound_effects/character/sing/0.wav"),
+	preload("res://sound_effects/character/sing/1.wav"),
+	preload("res://sound_effects/character/sing/2.wav"),
+	preload("res://sound_effects/character/sing/3.wav"),
+	preload("res://sound_effects/character/sing/4.wav"),
+	preload("res://sound_effects/character/sing/5.wav"),
+	preload("res://sound_effects/character/sing/6.wav"),
+	preload("res://sound_effects/character/sing/7.wav"),
 ]
 
 
@@ -46,6 +57,12 @@ const JUMP_SFX_STREAMS: Array[AudioStream] = [
 @export_group("Drop Initialization")
 @export var drops_on_initialization: Array[PackedScene] = []
 
+@export_group("Interaction")
+@export var voice_ring: PackedScene = preload("res://prefabs/entities/depth_control/voice_ring.tscn")
+@export var interact_sfx_player_path: NodePath = ^"SoundEffects/SFXSing"
+# Optional local point for primary interaction ring spawn.
+@export var voice_ring_spawn_point_path: NodePath
+
 var reference_original_height: float = 2.0
 
 var _visual_scale_root: Node2D
@@ -59,6 +76,7 @@ var _visual_position_base_position: Vector2 = Vector2.ZERO
 var _original_jump_height: float = 0.0
 var _original_jump_time_to_peak: float = 0.0
 var _original_jump_time_to_fall: float = 0.0
+var _interact_sfx_player: AudioStreamPlayer2D
 var drop_root: Node2D
 var animation_bridge: Node
 var _absorbed_drops: Array[Node] = []
@@ -85,6 +103,7 @@ func _ready() -> void:
 	_original_jump_height = jump_height
 	_original_jump_time_to_peak = jump_time_to_peak
 	_original_jump_time_to_fall = jump_time_to_fall
+	_interact_sfx_player = get_node_or_null(interact_sfx_player_path) as AudioStreamPlayer2D
 
 	var current_height_units := _get_collider_height_units()
 	if current_height_units <= 0.0:
@@ -110,17 +129,22 @@ func on_jump(_jump_velocity: float) -> void:
 	_apply_drop(drop_count - 1, true, true)
 
 
+func on_interact_primary() -> void:
+	# Primary interaction intent is routed through Pawn.interacted_primary to AnimationBridge.
+	pass
+
+
 func _get_jump_sfx_stream_for_jump(_jump_velocity: float) -> AudioStream:
-	var sfx_index := _map_drop_count_to_jump_sfx_index(drop_count)
+	var sfx_index := _map_drop_count_to_sfx_index(drop_count)
 	if sfx_index < 0 or sfx_index >= JUMP_SFX_STREAMS.size():
 		return null
 
 	return JUMP_SFX_STREAMS[sfx_index]
 
 
-func _map_drop_count_to_jump_sfx_index(remaining_drop_count: int) -> int:
+func _map_drop_count_to_sfx_index(remaining_drop_count: int) -> int:
 	# 0 drop -> 7.wav, 7+ drop -> 0.wav
-	return clampi(7 - remaining_drop_count, 0, 7)
+	return clampi(remaining_drop_count, 0, 7)
 
 
 func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visual: bool) -> void:
@@ -205,6 +229,123 @@ func _sync_jump_state() -> void:
 		jump_height = _original_jump_height
 		jump_time_to_peak = _original_jump_time_to_peak
 		jump_time_to_fall = _original_jump_time_to_fall
+
+
+func spawn_primary_voice_ring() -> void:
+	if voice_ring == null:
+		push_warning("CandleMan: voice_ring is not assigned.")
+		return
+	if not _validate_voice_ring_scene_root():
+		return
+
+	var spawn_parent := get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = get_tree().root
+	if spawn_parent == null:
+		push_warning("CandleMan: unable to spawn voice ring because no scene parent exists.")
+		return
+
+	var spawned_any := false
+	spawned_any = _spawn_voice_ring_at_configured_point(spawn_parent) or spawned_any
+	spawned_any = _spawn_voice_ring_at_each_drop_midpoint(spawn_parent) or spawned_any
+	if not spawned_any:
+		spawned_any = _spawn_voice_ring_at(spawn_parent, global_position)
+
+	if not spawned_any:
+		return
+
+	_play_primary_interact_sfx()
+
+
+func _validate_voice_ring_scene_root() -> bool:
+	var test_instance := voice_ring.instantiate()
+	if test_instance == null:
+		push_warning("CandleMan: failed to instantiate voice_ring scene.")
+		return false
+	if not (test_instance is Node2D):
+		push_warning("CandleMan: voice_ring root must be Node2D.")
+		test_instance.queue_free()
+		return false
+
+	test_instance.queue_free()
+	return true
+
+
+func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
+	var instance := voice_ring.instantiate()
+	if not (instance is Node2D):
+		if instance != null and is_instance_valid(instance):
+			instance.queue_free()
+		return false
+
+	var ring := instance as Node2D
+	spawn_parent.add_child(ring)
+	ring.global_position = spawn_position
+	return true
+
+
+func _spawn_voice_ring_at_configured_point(spawn_parent: Node) -> bool:
+	if voice_ring_spawn_point_path.is_empty():
+		return false
+
+	var point_node := get_node_or_null(voice_ring_spawn_point_path) as Node2D
+	if point_node == null:
+		return false
+
+	return _spawn_voice_ring_at(spawn_parent, point_node.global_position)
+
+
+func _spawn_voice_ring_at_each_drop_midpoint(spawn_parent: Node) -> bool:
+	var step_px := GameUnits.units_to_pixels(maxf(height_per_drop, 0.0))
+	if step_px <= 0.0:
+		return false
+
+	var spawned_any := false
+	for drop in _absorbed_drops:
+		if drop == null or not is_instance_valid(drop):
+			continue
+		if not (drop is Node2D):
+			continue
+
+		# During absorb animation, current global_position is transient.
+		# Prefer the absorbed slot target so ring anchors stay stable.
+		var drop_bottom := (drop as Node2D).global_position
+		if drop.has_method("_get_current_absorb_target_global_position"):
+			drop_bottom = drop.call("_get_current_absorb_target_global_position")
+		var drop_mid := drop_bottom + Vector2(0.0, -step_px * 0.5)
+		spawned_any = _spawn_voice_ring_at(spawn_parent, drop_mid) or spawned_any
+
+	# Fallback keeps behavior usable even before absorbed drop nodes are registered.
+	if not spawned_any:
+		for i in range(maxi(drop_count, 0)):
+			var drop_bottom_fallback := get_bottom_drop_global_position(i)
+			var drop_mid_fallback := drop_bottom_fallback + Vector2(0.0, -step_px * 0.5)
+			spawned_any = _spawn_voice_ring_at(spawn_parent, drop_mid_fallback) or spawned_any
+
+	return spawned_any
+
+
+func _play_primary_interact_sfx() -> void:
+	if _interact_sfx_player == null:
+		return
+
+	var stream_to_play := _get_primary_interact_sfx_stream(drop_count)
+	if stream_to_play == null:
+		stream_to_play = _interact_sfx_player.stream
+	if stream_to_play == null:
+		return
+
+	if _interact_sfx_player.stream != stream_to_play:
+		_interact_sfx_player.stream = stream_to_play
+	_interact_sfx_player.play()
+
+
+func _get_primary_interact_sfx_stream(remaining_drop_count: int) -> AudioStream:
+	var sfx_index := _map_drop_count_to_sfx_index(remaining_drop_count)
+	if sfx_index < 0 or sfx_index >= INTERACT_SFX_STREAMS.size():
+		return null
+
+	return INTERACT_SFX_STREAMS[sfx_index]
 
 
 func register_absorbed_drop(drop: Node, apply_height_and_count: bool = true) -> void:

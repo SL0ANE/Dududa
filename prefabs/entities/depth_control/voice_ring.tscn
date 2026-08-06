@@ -4,14 +4,24 @@
 [ext_resource type="Texture2D" uid="uid://bcgehvf3i2kuq" path="res://aseprite/resources/vfx/voice_ring/mask.png" id="1_1tdth"]
 [ext_resource type="Script" uid="uid://536m0jdi66m3" path="res://scripts/entities/voice_ring.gd" id="2_0n7tf"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_1tdth"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0n7tf"]
+resource_local_to_scene = true
 shader = ExtResource("1_0n7tf")
-shader_parameter/base_color = Color(1, 0.047, 0.086, 1)
-shader_parameter/progress = 0.50000002375
+shader_parameter/base_color = Color(0.75686276, 0.30588236, 1, 1)
+shader_parameter/progress = 0.0
 shader_parameter/radius_start = 8.0
-shader_parameter/radius_end = 64.0
+shader_parameter/radius_end = 32.0
+shader_parameter/pow0 = 1.0
+shader_parameter/pow1 = 2.0
 
 [node name="VoiceRing" type="Sprite2D" unique_id=1995916372]
-material = SubResource("ShaderMaterial_1tdth")
+z_index = -16
+material = SubResource("ShaderMaterial_0n7tf")
+scale = Vector2(0.5, 0.5)
 texture = ExtResource("1_1tdth")
 script = ExtResource("2_0n7tf")
+radius_start = 0.5
+radius_end = 2.0
+source_sprite_scale = 8.0
+pow0 = 1.0
+pow1 = 2.0

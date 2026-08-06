@@ -16,10 +16,14 @@ signal push_ended(other: Pawn, mode: int)
 signal pushed_started(other: Pawn, mode: int, direction: float)
 signal pushed_active(other: Pawn, mode: int, direction: float, overlap: float)
 signal pushed_ended(other: Pawn, mode: int)
+signal interacted_primary()
+signal interacted_secondary()
 
 
 const PAWN_GROUP: StringName = &"pawn"
 const CONTACT_EVENTS_ARM_DELAY_FRAMES := 2
+
+static var _collider_id_to_pawn := {}
 
 enum PawnCollisionMode {
 	SOFT_PUSH,
@@ -155,12 +159,16 @@ var _pushed_prev := {}
 var _jump_height_on_jump := 0.0
 var _jump_time_to_peak_on_jump := 0.0
 var _jump_time_to_fall_on_jump := 0.0
+var _registered_collider_ids: Array[int] = []
 
 # @onready var _animation_tree: AnimationTree = get_node_or_null(animation_tree_path)
 @onready var _sprite: AnimatedSprite2D = _resolve_sprite()
 
 
 func _ready() -> void:
+	if not tree_exiting.is_connected(_on_tree_exiting_unregister_collision_lookup):
+		tree_exiting.connect(_on_tree_exiting_unregister_collision_lookup)
+
 	if not is_in_group(PAWN_GROUP):
 		add_to_group(PAWN_GROUP)
 
@@ -168,6 +176,7 @@ func _ready() -> void:
 	call_deferred("_refresh_all_pawn_collisions")
 
 	_cache_collision_shapes_from_paths()
+	_register_collision_lookup()
 	_collider = _resolve_movable_collider()
 	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
@@ -183,6 +192,54 @@ func _ready() -> void:
 		# _animation_tree.active = true
 
 	# _ensure_valid_sprite_animation()
+
+
+static func resolve_pawn_from_collider_id(collider_id: int) -> Pawn:
+	if collider_id <= 0:
+		return null
+
+	var pawn := _collider_id_to_pawn.get(collider_id, null) as Pawn
+	if pawn != null and is_instance_valid(pawn):
+		return pawn
+
+	if _collider_id_to_pawn.has(collider_id):
+		_collider_id_to_pawn.erase(collider_id)
+	return null
+
+
+static func resolve_pawn_from_collider_node(collider: Node) -> Pawn:
+	if collider == null:
+		return null
+
+	return resolve_pawn_from_collider_id(collider.get_instance_id())
+
+
+func _register_collision_lookup() -> void:
+	_unregister_collision_lookup()
+	_register_collider_id(get_instance_id())
+
+	for cs in _get_cached_collision_shapes():
+		_register_collider_id(cs.get_instance_id())
+
+
+func _register_collider_id(collider_id: int) -> void:
+	if collider_id <= 0:
+		return
+
+	_collider_id_to_pawn[collider_id] = self
+	_registered_collider_ids.append(collider_id)
+
+
+func _unregister_collision_lookup() -> void:
+	for collider_id in _registered_collider_ids:
+		if _collider_id_to_pawn.get(collider_id, null) == self:
+			_collider_id_to_pawn.erase(collider_id)
+
+	_registered_collider_ids.clear()
+
+
+func _on_tree_exiting_unregister_collision_lookup() -> void:
+	_unregister_collision_lookup()
 
 
 func _physics_process(delta: float) -> void:
@@ -217,6 +274,16 @@ func _physics_process(delta: float) -> void:
 	var jump_pressed: bool = command.get("jump_pressed", false)
 	if not jump_enabled:
 		jump_pressed = false
+	var interact_primary_pressed: bool = command.get("interact_primary_pressed", false)
+	var interact_secondary_pressed: bool = command.get("interact_secondary_pressed", false)
+
+	if interact_primary_pressed:
+		on_interact_primary()
+		interacted_primary.emit()
+
+	if interact_secondary_pressed:
+		on_interact_secondary()
+		interacted_secondary.emit()
 
 	var jumps_allowed := maxi(max_jump_count, 0)
 	var has_jumps_left := _jump_count_since_ground < jumps_allowed
@@ -1068,7 +1135,7 @@ func _get_land_sfx_stream_for_landing(_impact_velocity: Vector2, fall_distance_u
 	if land_sfx_distance_thresholds.is_empty():
 		return land_sfx_streams[0]
 
-	print("land_distance: " + str(fall_distance_units))
+	# print("land_distance: " + str(fall_distance_units))
 
 	var threshold_count := land_sfx_distance_thresholds.size()
 	var stream_count := land_sfx_streams.size()
@@ -1164,6 +1231,14 @@ func on_pushed_active(_other: Pawn, _mode: int, _direction: float, _overlap: flo
 
 
 func on_pushed_ended(_other: Pawn, _mode: int) -> void:
+	pass
+
+
+func on_interact_primary() -> void:
+	pass
+
+
+func on_interact_secondary() -> void:
 	pass
 
 func _compute_jump_velocity() -> float:

@@ -198,5 +198,5 @@ content_texture = ExtResource("7_mbbcq")
 
 [node name="DeathControlWizard" parent="." unique_id=1582720686 instance=ExtResource("7_6hxeo")]
 position = Vector2(-40, 40)
-drop_count = 16
+drop_count = 7
 max_jump_count = 8

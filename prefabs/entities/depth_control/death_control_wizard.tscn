@@ -13,6 +13,7 @@
 [ext_resource type="SpriteFrames" uid="uid://uwwwli8n4m4x" path="res://aseprite/resources/entities/characters/death_control/0.aseprite" id="6_xk5t7"]
 [ext_resource type="Script" uid="uid://dgks5in2lbqg7" path="res://scripts/entities/pawn_animation_tree_bridge.gd" id="8_xk5t7"]
 [ext_resource type="AnimationNodeStateMachine" uid="uid://47x7u37ky2pb" path="res://animations/candle_man.tres" id="9_28c76"]
+[ext_resource type="AudioStream" uid="uid://dg7ymj3xdk7pc" path="res://sound_effects/character/sing/0.wav" id="9_cgld5"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="10_2s74i"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jxkf8"]
@@ -512,6 +513,20 @@ tracks/2/keys = {
 "update": 1,
 "values": [0.0]
 }
+tracks/3/type = "method"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.2),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"spawn_primary_voice_ring"
+}]
+}
 
 [sub_resource type="Animation" id="Animation_ocr3h"]
 length = 0.3
@@ -579,6 +594,8 @@ visual_bottom_offset = 0.5
 drop_root_path = NodePath("VisualPositionRoot/DropRoot")
 visual_drop_duration = 0.5
 drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
+interact_sfx_player_path = NodePath("VisualScaleRoot/SFXSing")
+voice_ring_spawn_point_path = NodePath("VisualPositionRoot/VoiceRoot")
 jump_height = 2.0
 land_sfx_streams = Array[AudioStream]([ExtResource("10_2s74i"), ExtResource("4_owxsv")])
 land_sfx_distance_thresholds = Array[float]([4.0])
@@ -598,6 +615,11 @@ z_as_relative = false
 material = SubResource("ShaderMaterial_vna8o")
 texture = ExtResource("3_bypij")
 
+[node name="SFXSing" type="AudioStreamPlayer2D" parent="VisualScaleRoot" unique_id=1893757552]
+stream = ExtResource("9_cgld5")
+volume_db = -4.0
+attenuation = 0.0
+
 [node name="VisualPositionRoot" type="Node2D" parent="." unique_id=947227969]
 z_index = 128
 position = Vector2(0, -32)
@@ -606,7 +628,7 @@ position = Vector2(0, -32)
 z_index = 1
 position = Vector2(0, 1)
 sprite_frames = ExtResource("6_xk5t7")
-animation = &"Idle"
+animation = &"Sing"
 
 [node name="CandelRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1032960415]
 
@@ -616,6 +638,9 @@ position = Vector2(0, -4)
 
 [node name="DropRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1388420991]
 position = Vector2(0, 21)
+
+[node name="VoiceRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1545530945]
+position = Vector2(0, 10)
 
 [node name="SoundEffects" type="Node2D" parent="." unique_id=1208566524]
 
@@ -644,7 +669,7 @@ script = ExtResource("8_xk5t7")
 tree_root = ExtResource("9_28c76")
 advance_expression_base_node = NodePath("../AnimationBridge")
 anim_player = NodePath("../AnimationPlayer")
-parameters/Jump/blend_position = 0.0
+parameters/Locomotion/Jump/blend_position = 0.0
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=80356664]
 libraries/ = SubResource("AnimationLibrary_benuo")

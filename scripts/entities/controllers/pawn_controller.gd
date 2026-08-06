@@ -7,6 +7,8 @@ static func default_command() -> Dictionary:
 		"move_axis": 0.0,
 		"look_axis": 0.0,
 		"jump_pressed": false,
+		"interact_primary_pressed": false,
+		"interact_secondary_pressed": false,
 	}
 
 

@@ -18,6 +18,7 @@ const Units = preload("res://scripts/shared/game_units.gd")
 const _TREE_PARAM_PATH_ALIASES := {
 	&"air_progress": [
 		&"parameters/Jump/blend_position",
+		&"parameters/Locomotion/Jump/blend_position",
 		&"parameters/EnabledState/Jump/blend_position",
 	],
 }
@@ -41,9 +42,11 @@ var expr_airborne_progress := 0.0
 var expr_vertical_speed_norm := 0.0
 var expr_time_since_last_move_seconds := 0.0
 var expr_time_since_last_jump_seconds := 0.0
+var expr_primary_interact_requested := false
 
 # Always true, kept for compatibility with existing tree expressions.
 var expr_bridge_connected = true
+var _pending_primary_interact_request := false
 
 func _ready() -> void:
 	_pawn = get_node_or_null(pawn_path) as Pawn
@@ -56,6 +59,8 @@ func _ready() -> void:
 		push_warning("PawnAnimationTreeBridge: animation_tree_path is invalid.")
 	if not _pawn.jumped.is_connected(_on_pawn_jumped):
 		_pawn.jumped.connect(_on_pawn_jumped)
+	if not _pawn.interacted_primary.is_connected(_on_pawn_interacted_primary):
+		_pawn.interacted_primary.connect(_on_pawn_interacted_primary)
 
 	if _animation_tree != null:
 		register_animation_tree(_animation_tree, _resolve_tree_animation_player(_animation_tree), force_bridge_expression_base)
@@ -141,6 +146,8 @@ func _sync_expression_values(delta: float) -> void:
 	expr_is_pushed = false
 	expr_time_since_last_move_seconds = _time_since_last_move_seconds
 	expr_time_since_last_jump_seconds = _time_since_last_jump_seconds
+	expr_primary_interact_requested = _pending_primary_interact_request
+	_pending_primary_interact_request = false
 
 	expr_airborne_progress = _compute_airborne_progress()
 
@@ -156,6 +163,19 @@ func _update_elapsed_activity_timers(moving: bool, delta: float) -> void:
 
 func _on_pawn_jumped(_jump_velocity: float) -> void:
 	_time_since_last_jump_seconds = 0.0
+
+
+func _on_pawn_interacted_primary() -> void:
+	_pending_primary_interact_request = true
+
+
+func play_primary_interact_effect() -> void:
+	if _pawn == null:
+		return
+
+	# Animation tracks can call this method to spawn the interaction effect at the chosen timing.
+	if _pawn.has_method("spawn_primary_voice_ring"):
+		_pawn.call("spawn_primary_voice_ring")
 
 
 func _compute_airborne_progress() -> float:

@@ -34,9 +34,10 @@ void vertex() {
 void fragment() {
 	vec2 uv = UV;
 	uv = floor(uv);
+	float safe_progress = clamp(progress, 0.0, 1.0);
 
-	float radius0 = floor(mix(radius_start, radius_end, pow(progress, pow0)) / 0.5) * 0.5 + 0.25;
-	float radius1 = floor(mix(radius_start, radius_end, pow(progress, pow1)) / 0.5) * 0.5 + 0.25;
+	float radius0 = floor(mix(radius_start, radius_end, pow(safe_progress, pow0)) / 0.5) * 0.5 + 0.25;
+	float radius1 = floor(mix(radius_start, radius_end, pow(safe_progress, pow1)) / 0.5) * 0.5 + 0.25;
 
 	vec2 center = vec2(v_left_right_distance * 0.5, v_top_bottom_distance * 0.5);
 	float sdCircle0 = length(uv - center) - radius0;
