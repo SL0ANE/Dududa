@@ -18,16 +18,20 @@ const INTERACT_SFX_STREAMS: Array[AudioStream] = [
 	preload("res://sound_effects/character/sing/1.wav"),
 	preload("res://sound_effects/character/sing/2.wav"),
 	preload("res://sound_effects/character/sing/3.wav"),
-	preload("res://sound_effects/character/sing/4.wav"),
-	preload("res://sound_effects/character/sing/5.wav"),
-	preload("res://sound_effects/character/sing/6.wav"),
-	preload("res://sound_effects/character/sing/7.wav"),
+	# preload("res://sound_effects/character/sing/4.wav"),
+	# preload("res://sound_effects/character/sing/5.wav"),
+	# preload("res://sound_effects/character/sing/6.wav"),
+	# preload("res://sound_effects/character/sing/7.wav"),
 ]
 
 
 @export_group("Drop Settings")
 # Current remaining shrink steps.
 @export var drop_count: int = 6
+# Duration for CandleDrop absorb animation (seconds).
+@export var absorb_duration: float = 0.25
+# Extra absorb animation time (seconds) added per already absorbed settled drop.
+@export var absorb_duration_per_absorbed_drop: float = 0.1
 # Initial shrink steps applied once on spawn.
 # Amount removed from body height per jump, in game units.
 @export var height_per_drop: float = 0.5
@@ -47,7 +51,8 @@ const INTERACT_SFX_STREAMS: Array[AudioStream] = [
 @export var animation_bridge_path: NodePath = ^"AnimationBridge"
 
 @export_group("Visual")
-@export var visual_drop_duration: float = 0.14
+@export var visual_scale_tween_duration: float = 0.5
+@export var visual_position_tween_duration: float = 0.25
 
 @export_group("Jump Settings")
 @export var jump_height_on_no_drops: float = 0.6
@@ -187,22 +192,35 @@ func _apply_visual_height(target_height_units: float, keep_top: bool, animate: b
 	var target_scale := Vector2(_visual_scale_base_scale.x, _visual_scale_base_scale.y * ratio)
 	var target_scale_position := Vector2(_visual_scale_base_position.x, _visual_scale_base_position.y - GameUnits.units_to_pixels(visual_height_units - safe_original_height) * 0.5)
 	var target_visual_position := _compute_visual_position_root_position(target_height_units)
-	_visual_position_root.position = target_visual_position
 	var offset = 0.0;
 	if keep_top:
 		offset -= (target_scale.y - _visual_scale_root.scale.y) * GameUnits.units_to_pixels(reference_original_height) * 0.5
 	_visual_scale_root.position = Vector2(_visual_scale_base_position.x, target_scale_position.y + offset)
 
 	if not animate:
+		_visual_position_root.position = target_visual_position
 		_visual_scale_root.scale = target_scale
 		_visual_scale_root.position = target_scale_position
 		return
 
+	var scale_duration := maxf(visual_scale_tween_duration, 0.0)
+
+	var position_duration := maxf(visual_position_tween_duration, 0.0)
+
 	_visual_tween = create_tween()
 	_visual_tween.set_trans(Tween.TRANS_SINE)
 	_visual_tween.set_ease(Tween.EASE_OUT)
-	_visual_tween.parallel().tween_property(_visual_scale_root, "scale", target_scale, visual_drop_duration)
-	_visual_tween.parallel().tween_property(_visual_scale_root, "position", target_scale_position, visual_drop_duration)
+	if scale_duration > 0.0:
+		_visual_tween.parallel().tween_property(_visual_scale_root, "scale", target_scale, scale_duration)
+		_visual_tween.parallel().tween_property(_visual_scale_root, "position", target_scale_position, scale_duration)
+	else:
+		_visual_scale_root.scale = target_scale
+		_visual_scale_root.position = target_scale_position
+
+	if position_duration > 0.0:
+		_visual_tween.parallel().tween_property(_visual_position_root, "position", target_visual_position, position_duration)
+	else:
+		_visual_position_root.position = target_visual_position
 
 
 func _compute_visual_position_root_position(target_height_units: float) -> Vector2:
@@ -247,7 +265,7 @@ func spawn_primary_voice_ring() -> void:
 
 	var spawned_any := false
 	spawned_any = _spawn_voice_ring_at_configured_point(spawn_parent) or spawned_any
-	spawned_any = _spawn_voice_ring_at_each_drop_midpoint(spawn_parent) or spawned_any
+	# spawned_any = _spawn_voice_ring_at_each_drop_midpoint(spawn_parent) or spawned_any
 	if not spawned_any:
 		spawned_any = _spawn_voice_ring_at(spawn_parent, global_position)
 
@@ -273,15 +291,34 @@ func _validate_voice_ring_scene_root() -> bool:
 
 func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
 	var instance := voice_ring.instantiate()
-	if not (instance is Node2D):
+	if not (instance is VoiceRing):
 		if instance != null and is_instance_valid(instance):
 			instance.queue_free()
 		return false
 
-	var ring := instance as Node2D
+	var ring := instance as VoiceRing
 	spawn_parent.add_child(ring)
 	ring.global_position = spawn_position
+
+	ring.on_hit_pawn.connect(_absorb_drop)
+
 	return true
+
+func _absorb_drop(pawn: Pawn, radius: float) -> void:
+
+	print("CandleMan: _absorb_drop called with pawn: ", pawn, ", radius: ", radius)
+
+	if pawn == null:
+		return
+	if not (pawn is CandleDrop):
+		return
+
+	var drop := pawn as CandleDrop
+	if drop._state != CandleDrop.DropState.INDEPENDENT:
+		return
+
+	var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
+	drop.absorb_into(self, effective_absorb_duration, true)
 
 
 func _spawn_voice_ring_at_configured_point(spawn_parent: Node) -> bool:
@@ -342,8 +379,10 @@ func _play_primary_interact_sfx() -> void:
 
 func _get_primary_interact_sfx_stream(remaining_drop_count: int) -> AudioStream:
 	var sfx_index := _map_drop_count_to_sfx_index(remaining_drop_count)
-	if sfx_index < 0 or sfx_index >= INTERACT_SFX_STREAMS.size():
+	if INTERACT_SFX_STREAMS.size() == 0:
 		return null
+	
+	sfx_index = clampi(sfx_index, 0, INTERACT_SFX_STREAMS.size() - 1)
 
 	return INTERACT_SFX_STREAMS[sfx_index]
 
@@ -462,9 +501,29 @@ func _on_initial_drop_ready(drop_node: Node2D) -> void:
 func _try_absorb_initial_drop(drop_node: Node2D) -> void:
 	if drop_node == null or not is_instance_valid(drop_node):
 		return
-	if not drop_node.has_method("absorb_into"):
-		push_warning("CandleMan: initial drop scene does not implement absorb_into(candle_man, play_animation).")
+	if not drop_node.has_method("absorb_into_immediate"):
+		push_warning("CandleMan: initial drop scene does not implement absorb_into_immediate(candle_man, apply_candle_man_growth).")
 		return
 
 	# Initial drops should match configured drop_count and not add extra height/count again.
-	drop_node.call("absorb_into", self, false, false)
+	drop_node.call("absorb_into_immediate", self, false)
+
+
+func _compute_absorb_duration_for_new_drop() -> float:
+	var base_duration := maxf(absorb_duration, 0.0)
+	var extra_per_drop := maxf(absorb_duration_per_absorbed_drop, 0.0)
+	if is_zero_approx(extra_per_drop):
+		return base_duration
+
+	var settled_absorbed_count := 0
+	for node in _absorbed_drops:
+		if node == null or not is_instance_valid(node):
+			continue
+		if not (node is CandleDrop):
+			continue
+
+		var absorbed_drop := node as CandleDrop
+		if absorbed_drop.is_absorbed_settled():
+			settled_absorbed_count += 1
+
+	return base_duration + float(settled_absorbed_count) * extra_per_drop

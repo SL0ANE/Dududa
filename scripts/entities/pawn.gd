@@ -22,6 +22,7 @@ signal interacted_secondary()
 
 const PAWN_GROUP: StringName = &"pawn"
 const CONTACT_EVENTS_ARM_DELAY_FRAMES := 2
+const FLOOR_SNAP_SUSPEND_AFTER_RESIZE_FRAMES := 2
 
 static var _collider_id_to_pawn := {}
 
@@ -159,16 +160,22 @@ var _pushed_prev := {}
 var _jump_height_on_jump := 0.0
 var _jump_time_to_peak_on_jump := 0.0
 var _jump_time_to_fall_on_jump := 0.0
+var _floor_snap_suspend_frames_left := 0
 var _registered_collider_ids: Array[int] = []
 
 # @onready var _animation_tree: AnimationTree = get_node_or_null(animation_tree_path)
 @onready var _sprite: AnimatedSprite2D = _resolve_sprite()
 
 
-func _ready() -> void:
+func _enter_tree() -> void:
+	# Reparenting can trigger tree exit/enter cycles; keep collider lookup in sync.
 	if not tree_exiting.is_connected(_on_tree_exiting_unregister_collision_lookup):
 		tree_exiting.connect(_on_tree_exiting_unregister_collision_lookup)
 
+	_register_collision_lookup()
+
+
+func _ready() -> void:
 	if not is_in_group(PAWN_GROUP):
 		add_to_group(PAWN_GROUP)
 
@@ -176,7 +183,6 @@ func _ready() -> void:
 	call_deferred("_refresh_all_pawn_collisions")
 
 	_cache_collision_shapes_from_paths()
-	_register_collision_lookup()
 	_collider = _resolve_movable_collider()
 	_ensure_collider_bottom_aligned_on_spawn()
 	_controller = _resolve_controller()
@@ -430,6 +436,7 @@ func _set_collider_height_units(new_height_units: float) -> void:
 	if collision_shape.shape == null:
 		return
 
+	var old_height_px := _shape_half_height_pixels(collision_shape.shape) * 2.0
 	var new_height_px := GameUnits.units_to_pixels(new_height_units)
 	var shape := collision_shape.shape
 	var half_height_px := 0.0
@@ -446,6 +453,34 @@ func _set_collider_height_units(new_height_units: float) -> void:
 
 	# Keep collider bottom aligned to Pawn local origin (y = 0).
 	collision_shape.position.y = -half_height_px
+
+	if not is_equal_approx(old_height_px, new_height_px):
+		# Guard against immediate re-snap after resize (can otherwise push into floor).
+		_floor_snap_suspend_frames_left = max(_floor_snap_suspend_frames_left, FLOOR_SNAP_SUSPEND_AFTER_RESIZE_FRAMES)
+
+	var growth_px := maxf(new_height_px - old_height_px, 0.0)
+	if growth_px > 0.0:
+		_depenetrate_up_after_collider_resize(int(ceil(growth_px)) + 2)
+
+
+func _depenetrate_up_after_collider_resize(max_up_px: int) -> void:
+	if max_up_px <= 0:
+		return
+
+	if not test_move(global_transform, Vector2.ZERO):
+		return
+
+	for i in range(1, max_up_px + 1):
+		var up := Vector2(0.0, -float(i))
+		var candidate := global_transform.translated(up)
+		if test_move(candidate, Vector2.ZERO):
+			continue
+
+		global_position += up
+		velocity.y = minf(velocity.y, 0.0)
+		_driven_velocity.y = minf(_driven_velocity.y, 0.0)
+		_external_velocity.y = minf(_external_velocity.y, 0.0)
+		return
 
 
 func _apply_horizontal_velocity(move_axis: float, delta: float) -> void:
@@ -554,9 +589,11 @@ func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_v
 
 
 func _tick_contact_event_arm_delay() -> void:
-	if _contact_events_arm_frames_left <= 0:
-		return
-	_contact_events_arm_frames_left -= 1
+	if _contact_events_arm_frames_left > 0:
+		_contact_events_arm_frames_left -= 1
+
+	if _floor_snap_suspend_frames_left > 0:
+		_floor_snap_suspend_frames_left -= 1
 
 
 func _try_corner_correction(move_axis: float, delta: float) -> void:
@@ -592,6 +629,8 @@ func _try_corner_correction(move_axis: float, delta: float) -> void:
 
 
 func _try_floor_snap_after_slide(was_on_ground: bool, was_on_pawn_floor: bool, jump_pressed: bool) -> void:
+	if _floor_snap_suspend_frames_left > 0:
+		return
 	if jump_pressed:
 		return
 	if is_on_floor():

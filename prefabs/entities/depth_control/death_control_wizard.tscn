@@ -592,7 +592,6 @@ script = ExtResource("1_4ykyb")
 legacy_height = 0.8
 visual_bottom_offset = 0.5
 drop_root_path = NodePath("VisualPositionRoot/DropRoot")
-visual_drop_duration = 0.5
 drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
 interact_sfx_player_path = NodePath("VisualScaleRoot/SFXSing")
 voice_ring_spawn_point_path = NodePath("VisualPositionRoot/VoiceRoot")
@@ -628,7 +627,7 @@ position = Vector2(0, -32)
 z_index = 1
 position = Vector2(0, 1)
 sprite_frames = ExtResource("6_xk5t7")
-animation = &"Sing"
+animation = &"Idle"
 
 [node name="CandelRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1032960415]
 

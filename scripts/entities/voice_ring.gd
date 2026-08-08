@@ -1,5 +1,6 @@
 @tool
 extends Sprite2D
+class_name VoiceRing
 
 const GameUnits = preload("res://scripts/shared/game_units.gd")
 
@@ -119,10 +120,6 @@ func _collect_pawns_in_radius(current_radius: float) -> void:
 		var hit_dict: Dictionary = hits[i]
 		var collider_id := int(hit_dict.get("collider_id", -1))
 		var pawn := Pawn.resolve_pawn_from_collider_id(collider_id)
-		if pawn == null:
-			var collider_node := hit_dict.get("collider") as Node
-			if collider_node != null:
-				pawn = Pawn.resolve_pawn_from_collider_node(collider_node)
 		if pawn == null:
 			continue
 

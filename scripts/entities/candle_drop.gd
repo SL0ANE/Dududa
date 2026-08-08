@@ -11,7 +11,6 @@ enum DropState {
 @export_group("Nodes")
 
 @export_group("Absorb")
-@export var absorb_duration: float = 0.22
 @export var absorb_animation_param_path: StringName = &"parameters/conditions/is_absorbing"
 # Horizontal offset for alternating left/right layout while absorbed, in pixels.
 @export var absorb_alternate_x_offset_pixels: int = 1
@@ -45,6 +44,7 @@ var _animation_tree: AnimationTree
 var _independent_parent: Node
 var _absorb_animating := false
 var _absorb_elapsed := 0.0
+var _absorb_duration_current := 0.0
 var _absorb_start_global_position := Vector2.ZERO
 var _tree_param_keys := {}
 var _saved_movement_enabled := true
@@ -84,7 +84,15 @@ func _physics_process(delta: float) -> void:
 		_snap_to_absorbed_slot()
 
 
-func absorb_into(candle_man: Node, play_animation: bool = true, apply_candle_man_growth: bool = true) -> void:
+func absorb_into(candle_man: Node, absorb_duration_seconds: float, apply_candle_man_growth: bool = true) -> void:
+	_absorb_into_internal(candle_man, absorb_duration_seconds, true, apply_candle_man_growth)
+
+
+func absorb_into_immediate(candle_man: Node, apply_candle_man_growth: bool = true) -> void:
+	_absorb_into_internal(candle_man, 0.0, false, apply_candle_man_growth)
+
+
+func _absorb_into_internal(candle_man: Node, absorb_duration_seconds: float, animate: bool, apply_candle_man_growth: bool) -> void:
 	if candle_man == null:
 		return
 
@@ -115,7 +123,8 @@ func absorb_into(candle_man: Node, play_animation: bool = true, apply_candle_man
 
 	_set_absorb_animation_flag(true)
 
-	if play_animation and absorb_duration > 0.0:
+	_absorb_duration_current = maxf(absorb_duration_seconds, 0.0)
+	if animate and _absorb_duration_current > 0.0:
 		_absorb_animating = true
 		_absorb_elapsed = 0.0
 		_absorb_start_global_position = global_position
@@ -132,6 +141,10 @@ func detach_from_candle_man_due_jump() -> void:
 		_complete_absorb_animation_immediately()
 
 	detach_to_independent()
+
+
+func is_absorbed_settled() -> bool:
+	return _state == DropState.ABSORBED and (not _absorb_animating)
 
 
 func detach_to_independent() -> void:
@@ -176,7 +189,7 @@ func _update_absorb_animation(delta: float) -> void:
 		return
 
 	_absorb_elapsed += maxf(delta, 0.0)
-	var t := clampf(_absorb_elapsed / maxf(absorb_duration, 0.0001), 0.0, 1.0)
+	var t := clampf(_absorb_elapsed / maxf(_absorb_duration_current, 0.0001), 0.0, 1.0)
 	var eased := sin(t * PI * 0.5)
 	var target_global := _get_current_absorb_target_global_position()
 	global_position = _absorb_start_global_position.lerp(target_global, eased)
@@ -188,6 +201,7 @@ func _update_absorb_animation(delta: float) -> void:
 func _finalize_absorb_visual_state() -> void:
 	_absorb_animating = false
 	_absorb_elapsed = 0.0
+	_absorb_duration_current = 0.0
 	_set_absorb_animation_flag(false)
 
 	if _candle_man == null:
