@@ -17,10 +17,6 @@ advance_expression = "!expr_bridge_connected"
 switch_mode = 2
 advance_mode = 2
 
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_feipg"]
-advance_mode = 2
-advance_expression = "expr_primary_interact_requested"
-
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_05gl8"]
 advance_mode = 2
 advance_expression = "expr_bridge_connected"
@@ -43,5 +39,5 @@ states/Hit/position = Vector2(151, 116)
 states/Sing/node = SubResource("AnimationNodeAnimation_bax0q")
 states/Sing/position = Vector2(479, 200.29628)
 states/Start/position = Vector2(280, 378.29626)
-transitions = ["EnabledState", "DisabledState", SubResource("AnimationNodeStateMachineTransition_jcant"), "Sing", "EnabledState", SubResource("AnimationNodeStateMachineTransition_htoib"), "EnabledState", "Sing", SubResource("AnimationNodeStateMachineTransition_feipg"), "DisabledState", "Hit", SubResource("AnimationNodeStateMachineTransition_05gl8"), "Hit", "EnabledState", SubResource("AnimationNodeStateMachineTransition_jftiy"), "Start", "EnabledState", SubResource("AnimationNodeStateMachineTransition_bax0q")]
+transitions = ["EnabledState", "DisabledState", SubResource("AnimationNodeStateMachineTransition_jcant"), "Sing", "EnabledState", SubResource("AnimationNodeStateMachineTransition_htoib"), "DisabledState", "Hit", SubResource("AnimationNodeStateMachineTransition_05gl8"), "Hit", "EnabledState", SubResource("AnimationNodeStateMachineTransition_jftiy"), "Start", "EnabledState", SubResource("AnimationNodeStateMachineTransition_bax0q")]
 graph_offset = Vector2(-121, 11)
