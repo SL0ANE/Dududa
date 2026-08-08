@@ -171,7 +171,7 @@ func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visua
 		var collider_height_delta_units := target_collider_height_units - current_collider_height_units
 		_set_collider_height_units(target_collider_height_units)
 		var collider_height_delta_px := GameUnits.units_to_pixels(collider_height_delta_units)
-		if keep_top:
+		if keep_top and collider_height_delta_px < 0.0:
 			global_position.y += collider_height_delta_px
 
 	_apply_visual_height(target_height_units, keep_top, animate_visual)
