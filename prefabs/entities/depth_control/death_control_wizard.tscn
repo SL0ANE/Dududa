@@ -15,6 +15,7 @@
 [ext_resource type="AnimationNodeStateMachine" uid="uid://47x7u37ky2pb" path="res://animations/candle_man.tres" id="9_28c76"]
 [ext_resource type="AudioStream" uid="uid://dg7ymj3xdk7pc" path="res://sound_effects/character/sing/0.wav" id="9_cgld5"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="10_2s74i"]
+[ext_resource type="AudioStream" uid="uid://buutxas3fvmxr" path="res://sound_effects/skull_stacking/0.wav" id="10_2868b"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jxkf8"]
 size = Vector2(10, 30)
@@ -589,12 +590,14 @@ _data = {
 [node name="DeathControlWizard" type="CharacterBody2D" unique_id=1582720686]
 y_sort_enabled = true
 script = ExtResource("1_4ykyb")
+absorb_duration = 0.1
 legacy_height = 0.8
 visual_bottom_offset = 0.5
 drop_root_path = NodePath("VisualPositionRoot/DropRoot")
 drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
 interact_sfx_player_path = NodePath("VisualScaleRoot/SFXSing")
 voice_ring_spawn_point_path = NodePath("VisualPositionRoot/VoiceRoot")
+absorb_sfx_player_path = NodePath("VisualScaleRoot/SFXAbsorb")
 jump_height = 2.0
 land_sfx_streams = Array[AudioStream]([ExtResource("10_2s74i"), ExtResource("4_owxsv")])
 land_sfx_distance_thresholds = Array[float]([4.0])
@@ -616,6 +619,11 @@ texture = ExtResource("3_bypij")
 
 [node name="SFXSing" type="AudioStreamPlayer2D" parent="VisualScaleRoot" unique_id=1893757552]
 stream = ExtResource("9_cgld5")
+volume_db = -4.0
+attenuation = 0.0
+
+[node name="SFXAbsorb" type="AudioStreamPlayer2D" parent="VisualScaleRoot" unique_id=2084696798]
+stream = ExtResource("10_2868b")
 volume_db = -4.0
 attenuation = 0.0
 

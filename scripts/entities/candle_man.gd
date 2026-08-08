@@ -24,6 +24,17 @@ const INTERACT_SFX_STREAMS: Array[AudioStream] = [
 	# preload("res://sound_effects/character/sing/7.wav"),
 ]
 
+const ABSORB_SFX_STREAMS: Array[AudioStream] = [
+	preload("res://sound_effects/skull_stacking/0.wav"),
+	preload("res://sound_effects/skull_stacking/1.wav"),
+	preload("res://sound_effects/skull_stacking/2.wav"),
+	preload("res://sound_effects/skull_stacking/3.wav"),
+	preload("res://sound_effects/skull_stacking/4.wav"),
+	preload("res://sound_effects/skull_stacking/5.wav"),
+	preload("res://sound_effects/skull_stacking/6.wav"),
+	preload("res://sound_effects/skull_stacking/7.wav"),
+]
+
 
 @export_group("Drop Settings")
 # Current remaining shrink steps.
@@ -68,6 +79,9 @@ const INTERACT_SFX_STREAMS: Array[AudioStream] = [
 # Optional local point for primary interaction ring spawn.
 @export var voice_ring_spawn_point_path: NodePath
 
+@export_group("Absorb SFX")
+@export var absorb_sfx_player_path: NodePath = ^"SoundEffects/SFXAbsorb"
+
 var reference_original_height: float = 2.0
 
 var _visual_scale_root: Node2D
@@ -82,6 +96,7 @@ var _original_jump_height: float = 0.0
 var _original_jump_time_to_peak: float = 0.0
 var _original_jump_time_to_fall: float = 0.0
 var _interact_sfx_player: AudioStreamPlayer2D
+var _absorb_sfx_player: AudioStreamPlayer2D
 var drop_root: Node2D
 var animation_bridge: Node
 var _absorbed_drops: Array[Node] = []
@@ -109,6 +124,7 @@ func _ready() -> void:
 	_original_jump_time_to_peak = jump_time_to_peak
 	_original_jump_time_to_fall = jump_time_to_fall
 	_interact_sfx_player = get_node_or_null(interact_sfx_player_path) as AudioStreamPlayer2D
+	_absorb_sfx_player = get_node_or_null(absorb_sfx_player_path) as AudioStreamPlayer2D
 
 	var current_height_units := _get_collider_height_units()
 	if current_height_units <= 0.0:
@@ -396,7 +412,19 @@ func register_absorbed_drop(drop: Node, apply_height_and_count: bool = true) -> 
 	# Keep order from top to bottom; newly absorbed drops are appended as the new bottom.
 	_absorbed_drops.append(drop)
 	if apply_height_and_count:
+		_play_absorb_sfx_for_drop_index(_absorbed_drops.size() - 1)
 		_apply_drop(drop_count + 1, true, true)
+
+
+func on_absorbed_drop_animation_finished(drop: Node) -> void:
+	if drop == null:
+		return
+
+	var absorbed_drop_bottom_index := get_absorbed_drop_bottom_index(drop)
+	if absorbed_drop_bottom_index < 0:
+		return
+
+	# _play_absorb_sfx_for_drop_index(absorbed_drop_bottom_index)
 
 
 func unregister_absorbed_drop(drop: Node) -> void:
@@ -527,3 +555,26 @@ func _compute_absorb_duration_for_new_drop() -> float:
 			settled_absorbed_count += 1
 
 	return base_duration + float(settled_absorbed_count) * extra_per_drop
+
+
+func _play_absorb_sfx_for_drop_index(absorbed_drop_bottom_index: int) -> void:
+	if _absorb_sfx_player == null:
+		return
+
+	var stream_to_play := _get_absorb_sfx_stream_for_drop_index(absorbed_drop_bottom_index)
+	if stream_to_play == null:
+		stream_to_play = _absorb_sfx_player.stream
+	if stream_to_play == null:
+		return
+
+	if _absorb_sfx_player.stream != stream_to_play:
+		_absorb_sfx_player.stream = stream_to_play
+	_absorb_sfx_player.play()
+
+
+func _get_absorb_sfx_stream_for_drop_index(absorbed_drop_bottom_index: int) -> AudioStream:
+	if ABSORB_SFX_STREAMS.is_empty():
+		return null
+
+	var clamped_index := clampi(absorbed_drop_bottom_index, 0, ABSORB_SFX_STREAMS.size() - 1)
+	return ABSORB_SFX_STREAMS[clamped_index]

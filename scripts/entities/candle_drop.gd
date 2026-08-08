@@ -46,6 +46,7 @@ var _absorb_animating := false
 var _absorb_elapsed := 0.0
 var _absorb_duration_current := 0.0
 var _absorb_start_global_position := Vector2.ZERO
+var _notify_candle_man_on_absorb_settled := false
 var _tree_param_keys := {}
 var _saved_movement_enabled := true
 var _saved_jump_enabled := true
@@ -124,6 +125,7 @@ func _absorb_into_internal(candle_man: Node, absorb_duration_seconds: float, ani
 	_set_absorb_animation_flag(true)
 
 	_absorb_duration_current = maxf(absorb_duration_seconds, 0.0)
+	_notify_candle_man_on_absorb_settled = animate and _absorb_duration_current > 0.0
 	if animate and _absorb_duration_current > 0.0:
 		_absorb_animating = true
 		_absorb_elapsed = 0.0
@@ -157,6 +159,7 @@ func detach_to_independent() -> void:
 
 	_absorb_animating = false
 	_absorb_elapsed = 0.0
+	_notify_candle_man_on_absorb_settled = false
 	_state = DropState.INDEPENDENT
 	_candle_man = null
 
@@ -199,6 +202,9 @@ func _update_absorb_animation(delta: float) -> void:
 
 
 func _finalize_absorb_visual_state() -> void:
+	var should_notify_settled := _notify_candle_man_on_absorb_settled
+	_notify_candle_man_on_absorb_settled = false
+
 	_absorb_animating = false
 	_absorb_elapsed = 0.0
 	_absorb_duration_current = 0.0
@@ -215,6 +221,9 @@ func _finalize_absorb_visual_state() -> void:
 
 	_set_animation_expression_source(_candle_man.animation_bridge as Node)
 	_snap_to_absorbed_slot()
+
+	if should_notify_settled and _candle_man.has_method("on_absorbed_drop_animation_finished"):
+		_candle_man.call("on_absorbed_drop_animation_finished", self)
 
 
 func _complete_absorb_animation_immediately() -> void:
