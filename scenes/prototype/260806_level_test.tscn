@@ -28,9 +28,8 @@ physics_quadrant_size = 8
 position = Vector2(592, -3)
 
 [node name="DeathControlWizard" parent="Node" unique_id=1582720686 instance=ExtResource("7_7jvo1")]
-position = Vector2(521, 9)
+position = Vector2(264, 167)
 drop_count = 0
-max_jump_count = 8
 
 [node name="w" parent="Node" unique_id=1514261021 instance=ExtResource("8_ffon8")]
 position = Vector2(510, 125)
