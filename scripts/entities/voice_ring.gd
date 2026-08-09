@@ -4,7 +4,7 @@ class_name VoiceRing
 
 const GameUnits = preload("res://scripts/shared/game_units.gd")
 
-signal on_hit_pawn(pawn: Pawn, radius: float)
+signal on_hit_pawn(pawn: Pawn, radius: float, emit_timestamp: int)
 signal on_progress_end()
 
 @export_group("Appearance")
@@ -63,9 +63,11 @@ var _hit_pawn_ids := {}
 var _query_shape := CircleShape2D.new()
 var _query_params := PhysicsShapeQueryParameters2D.new()
 var _query_max_results := 16
+var _emit_timestamp : int = 0
 
 func _ready() -> void:
 	_timer = 0.0
+	_emit_timestamp = Time.get_ticks_msec()
 	_query_params.shape = _query_shape
 	_query_params.collide_with_bodies = true
 	_query_params.collide_with_areas = false
@@ -128,7 +130,7 @@ func _collect_pawns_in_radius(current_radius: float) -> void:
 			continue
 
 		_hit_pawn_ids[pawn_id] = true
-		on_hit_pawn.emit(pawn, current_radius)
+		on_hit_pawn.emit(pawn, current_radius, _emit_timestamp)
 func _update_progress() -> void:
 	var shader_material := material as ShaderMaterial
 	if shader_material:

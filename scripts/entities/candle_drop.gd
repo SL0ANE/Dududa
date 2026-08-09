@@ -38,8 +38,10 @@ var _sprite_preset_index: int = 0
 		_update_facing_flip()
 var _current_facing: int = -1
 
-var _state: int = DropState.INDEPENDENT
-var _candle_man: Variant = null
+var state: int = DropState.INDEPENDENT
+var detach_timestamp: int = -65535
+
+var _candle_man: CandleMan = null
 var _animation_tree: AnimationTree
 var _independent_parent: Node
 var _absorb_animating := false
@@ -75,7 +77,7 @@ func _exit_tree() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _state == DropState.INDEPENDENT:
+	if state == DropState.INDEPENDENT:
 		super._physics_process(delta)
 		return
 
@@ -85,30 +87,32 @@ func _physics_process(delta: float) -> void:
 		_snap_to_absorbed_slot()
 
 
-func absorb_into(candle_man: Node, absorb_duration_seconds: float, apply_candle_man_growth: bool = true) -> void:
+func absorb_into(candle_man: CandleMan, absorb_duration_seconds: float, apply_candle_man_growth: bool = true) -> void:
 	_absorb_into_internal(candle_man, absorb_duration_seconds, true, apply_candle_man_growth)
 
 
-func absorb_into_immediate(candle_man: Node, apply_candle_man_growth: bool = true) -> void:
+func absorb_into_immediate(candle_man: CandleMan, apply_candle_man_growth: bool = true) -> void:
 	_absorb_into_internal(candle_man, 0.0, false, apply_candle_man_growth)
 
 
-func _absorb_into_internal(candle_man: Node, absorb_duration_seconds: float, animate: bool, apply_candle_man_growth: bool) -> void:
+func _absorb_into_internal(candle_man: CandleMan, absorb_duration_seconds: float, animate: bool, apply_candle_man_growth: bool) -> void:
 	if candle_man == null:
 		return
 
-	if _state == DropState.ABSORBED and _candle_man == candle_man and (not _absorb_animating):
+	if state == DropState.ABSORBED and _candle_man == candle_man and (not _absorb_animating):
 		return
 
-	if _state == DropState.ABSORBED:
+	if state == DropState.ABSORBED:
 		detach_to_independent()
-		
+
+	_on_absorb(_candle_man)
+
 	_current_facing = 0 if randf() < 0.5 else 1
 	_sprite_preset_index = randi() % max(sprite_presets.size(), 1)
 	_update_appearance()
 
 	_candle_man = candle_man
-	_state = DropState.ABSORBED
+	state = DropState.ABSORBED
 
 	# Logical changes happen at absorb start.
 	_saved_movement_enabled = movement_enabled
@@ -136,7 +140,7 @@ func _absorb_into_internal(candle_man: Node, absorb_duration_seconds: float, ani
 
 
 func detach_from_candle_man_due_jump() -> void:
-	if _state != DropState.ABSORBED:
+	if state != DropState.ABSORBED:
 		return
 
 	if _candle_man != null and _absorb_animating and _candle_man.is_bottom_absorbed_drop(self):
@@ -146,21 +150,24 @@ func detach_from_candle_man_due_jump() -> void:
 
 
 func is_absorbed_settled() -> bool:
-	return _state == DropState.ABSORBED and (not _absorb_animating)
+	return state == DropState.ABSORBED and (not _absorb_animating)
 
 
 func detach_to_independent() -> void:
-	if _state == DropState.INDEPENDENT:
+	if state == DropState.INDEPENDENT:
 		return
 
-	var old_candle_man: Variant = _candle_man
+	_on_detach(_candle_man)
+	detach_timestamp = Time.get_ticks_msec()
+
+	var old_candle_man: CandleMan = _candle_man
 	if old_candle_man != null:
 		old_candle_man.unregister_absorbed_drop(self)
 
 	_absorb_animating = false
 	_absorb_elapsed = 0.0
 	_notify_candle_man_on_absorb_settled = false
-	_state = DropState.INDEPENDENT
+	state = DropState.INDEPENDENT
 	_candle_man = null
 
 	var target_parent: Node = _independent_parent
@@ -222,12 +229,12 @@ func _finalize_absorb_visual_state() -> void:
 	_set_animation_expression_source(_candle_man.animation_bridge as Node)
 	_snap_to_absorbed_slot()
 
-	if should_notify_settled and _candle_man.has_method("on_absorbed_drop_animation_finished"):
-		_candle_man.call("on_absorbed_drop_animation_finished", self)
+	if should_notify_settled:
+		_candle_man.on_absorbed_drop_animation_finished(self)
 
 
 func _complete_absorb_animation_immediately() -> void:
-	if _state != DropState.ABSORBED:
+	if state != DropState.ABSORBED:
 		return
 
 	if not _absorb_animating:
@@ -241,14 +248,14 @@ func _get_current_absorb_target_global_position() -> Vector2:
 	if _candle_man == null:
 		return global_position
 
-	var idx: int = int(_candle_man.call("get_absorbed_drop_bottom_index", self))
+	var idx: int = _candle_man.get_absorbed_drop_bottom_index(self)
 	if idx < 0:
 		idx = 0
 	return _candle_man.get_bottom_drop_global_position(idx) + _get_alternating_absorb_offset(idx)
 
 
 func _snap_to_absorbed_slot() -> void:
-	if _state != DropState.ABSORBED:
+	if state != DropState.ABSORBED:
 		return
 	global_position = _get_current_absorb_target_global_position()
 
@@ -392,3 +399,9 @@ func _update_facing_flip() -> void:
 		return
 
 	_sprite.flip_h = current_facing > 0
+
+func _on_absorb(man: CandleMan) -> void:
+	pass
+
+func _on_detach(man: CandleMan) -> void:
+	pass

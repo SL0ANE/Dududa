@@ -636,7 +636,7 @@ position = Vector2(0, -32)
 z_index = 1
 position = Vector2(0, 1)
 sprite_frames = ExtResource("6_xk5t7")
-animation = &"Sing"
+animation = &"Idle"
 
 [node name="CandelRoot" type="Node2D" parent="VisualPositionRoot" unique_id=1032960415]
 

@@ -99,7 +99,7 @@ var _interact_sfx_player: AudioStreamPlayer2D
 var _absorb_sfx_player: AudioStreamPlayer2D
 var drop_root: Node2D
 var animation_bridge: Node
-var _absorbed_drops: Array[Node] = []
+var _absorbed_drops: Array[CandleDrop] = []
 
 func _ready() -> void:
 	super._ready()
@@ -272,12 +272,7 @@ func spawn_primary_voice_ring() -> void:
 	if not _validate_voice_ring_scene_root():
 		return
 
-	var spawn_parent := get_tree().current_scene
-	if spawn_parent == null:
-		spawn_parent = get_tree().root
-	if spawn_parent == null:
-		push_warning("CandleMan: unable to spawn voice ring because no scene parent exists.")
-		return
+	var spawn_parent := self
 
 	var spawned_any := false
 	spawned_any = _spawn_voice_ring_at_configured_point(spawn_parent) or spawned_any
@@ -320,9 +315,9 @@ func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
 
 	return true
 
-func _absorb_drop(pawn: Pawn, radius: float) -> void:
+func _absorb_drop(pawn: Pawn, radius: float, emit_timestamp: int) -> void:
 
-	print("CandleMan: _absorb_drop called with pawn: ", pawn, ", radius: ", radius)
+	# print("CandleMan: _absorb_drop called with pawn: ", pawn, ", radius: ", radius)
 
 	if pawn == null:
 		return
@@ -330,7 +325,11 @@ func _absorb_drop(pawn: Pawn, radius: float) -> void:
 		return
 
 	var drop := pawn as CandleDrop
-	if drop._state != CandleDrop.DropState.INDEPENDENT:
+	if drop.state != CandleDrop.DropState.INDEPENDENT:
+		return
+
+	if absi(emit_timestamp - drop.detach_timestamp) < 500:
+		# print("CandleMan: Ignoring absorb for recently detached drop. emit_timestamp: ", emit_timestamp, ", drop.detach_timestamp: ", drop.detach_timestamp)
 		return
 
 	var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
@@ -357,14 +356,11 @@ func _spawn_voice_ring_at_each_drop_midpoint(spawn_parent: Node) -> bool:
 	for drop in _absorbed_drops:
 		if drop == null or not is_instance_valid(drop):
 			continue
-		if not (drop is Node2D):
-			continue
 
 		# During absorb animation, current global_position is transient.
 		# Prefer the absorbed slot target so ring anchors stay stable.
-		var drop_bottom := (drop as Node2D).global_position
-		if drop.has_method("_get_current_absorb_target_global_position"):
-			drop_bottom = drop.call("_get_current_absorb_target_global_position")
+		var drop_bottom := drop.global_position
+		drop_bottom = drop._get_current_absorb_target_global_position()
 		var drop_mid := drop_bottom + Vector2(0.0, -step_px * 0.5)
 		spawned_any = _spawn_voice_ring_at(spawn_parent, drop_mid) or spawned_any
 
@@ -403,7 +399,7 @@ func _get_primary_interact_sfx_stream(remaining_drop_count: int) -> AudioStream:
 	return INTERACT_SFX_STREAMS[sfx_index]
 
 
-func register_absorbed_drop(drop: Node, apply_height_and_count: bool = true) -> void:
+func register_absorbed_drop(drop: CandleDrop, apply_height_and_count: bool = true) -> void:
 	if drop == null:
 		return
 	if _absorbed_drops.has(drop):
@@ -416,7 +412,7 @@ func register_absorbed_drop(drop: Node, apply_height_and_count: bool = true) -> 
 		_apply_drop(drop_count + 1, true, true)
 
 
-func on_absorbed_drop_animation_finished(drop: Node) -> void:
+func on_absorbed_drop_animation_finished(drop: CandleDrop) -> void:
 	if drop == null:
 		return
 
@@ -427,7 +423,7 @@ func on_absorbed_drop_animation_finished(drop: Node) -> void:
 	# _play_absorb_sfx_for_drop_index(absorbed_drop_bottom_index)
 
 
-func unregister_absorbed_drop(drop: Node) -> void:
+func unregister_absorbed_drop(drop: CandleDrop) -> void:
 	if drop == null:
 		return
 
@@ -438,7 +434,7 @@ func unregister_absorbed_drop(drop: Node) -> void:
 	_absorbed_drops.remove_at(idx)
 
 
-func is_bottom_absorbed_drop(drop: Node) -> bool:
+func is_bottom_absorbed_drop(drop: CandleDrop) -> bool:
 	if drop == null:
 		return false
 	if _absorbed_drops.is_empty():
@@ -447,7 +443,7 @@ func is_bottom_absorbed_drop(drop: Node) -> bool:
 	return _absorbed_drops[_absorbed_drops.size() - 1] == drop
 
 
-func get_absorbed_drop_bottom_index(drop: Node) -> int:
+func get_absorbed_drop_bottom_index(drop: CandleDrop) -> int:
 	if drop == null:
 		return -1
 
@@ -474,8 +470,7 @@ func _request_detach_bottom_drop_on_jump() -> void:
 		_absorbed_drops.remove_at(_absorbed_drops.size() - 1)
 		return
 
-	if bottom.has_method("detach_from_candle_man_due_jump"):
-		bottom.call("detach_from_candle_man_due_jump")
+	bottom.detach_from_candle_man_due_jump()
 
 
 func _spawn_absorbed_drops_on_initialization() -> void:
@@ -529,12 +524,13 @@ func _on_initial_drop_ready(drop_node: Node2D) -> void:
 func _try_absorb_initial_drop(drop_node: Node2D) -> void:
 	if drop_node == null or not is_instance_valid(drop_node):
 		return
-	if not drop_node.has_method("absorb_into_immediate"):
-		push_warning("CandleMan: initial drop scene does not implement absorb_into_immediate(candle_man, apply_candle_man_growth).")
+	if not (drop_node is CandleDrop):
+		push_warning("CandleMan: initial drop scene root must be CandleDrop.")
 		return
 
 	# Initial drops should match configured drop_count and not add extra height/count again.
-	drop_node.call("absorb_into_immediate", self, false)
+	var drop := drop_node as CandleDrop
+	drop.absorb_into_immediate(self, false)
 
 
 func _compute_absorb_duration_for_new_drop() -> float:
@@ -544,14 +540,10 @@ func _compute_absorb_duration_for_new_drop() -> float:
 		return base_duration
 
 	var settled_absorbed_count := 0
-	for node in _absorbed_drops:
-		if node == null or not is_instance_valid(node):
+	for drop in _absorbed_drops:
+		if drop == null or not is_instance_valid(drop):
 			continue
-		if not (node is CandleDrop):
-			continue
-
-		var absorbed_drop := node as CandleDrop
-		if absorbed_drop.is_absorbed_settled():
+		if drop.is_absorbed_settled():
 			settled_absorbed_count += 1
 
 	return base_duration + float(settled_absorbed_count) * extra_per_drop
