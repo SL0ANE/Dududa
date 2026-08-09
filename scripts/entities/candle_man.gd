@@ -100,6 +100,12 @@ var _absorb_sfx_player: AudioStreamPlayer2D
 var drop_root: Node2D
 var animation_bridge: Node
 var _absorbed_drops: Array[CandleDrop] = []
+var _pending_absorb_drops: Array[CandleDrop] = []
+
+
+func _physics_process(delta: float) -> void:
+	_absorb_pending_drops()
+	super._physics_process(delta)
 
 func _ready() -> void:
 	super._ready()
@@ -187,7 +193,7 @@ func _apply_drop(target_remaining_drop_count: int, keep_top: bool, animate_visua
 		var collider_height_delta_units := target_collider_height_units - current_collider_height_units
 		_set_collider_height_units(target_collider_height_units)
 		var collider_height_delta_px := GameUnits.units_to_pixels(collider_height_delta_units)
-		if keep_top and collider_height_delta_px < 0.0:
+		if keep_top and (collider_height_delta_px < 0.0 or !animate_visual):
 			global_position.y += collider_height_delta_px
 
 	_apply_visual_height(target_height_units, keep_top, animate_visual)
@@ -253,7 +259,7 @@ func _compute_visual_position_root_position(target_height_units: float) -> Vecto
 
 func _sync_jump_state() -> void:
 	if drop_count <= 0:
-		if(jump_height_on_no_drops <= 0):
+		if (jump_height_on_no_drops <= 0):
 			jump_enabled = false
 		jump_height = jump_height_on_no_drops
 		jump_time_to_peak = jump_time_to_peak_on_no_drops
@@ -272,7 +278,12 @@ func spawn_primary_voice_ring() -> void:
 	if not _validate_voice_ring_scene_root():
 		return
 
-	var spawn_parent := self
+	var spawn_parent := get_tree().current_scene
+	if spawn_parent == null:
+		spawn_parent = get_tree().root
+	if spawn_parent == null:
+		push_warning("CandleMan: unable to spawn voice ring because no scene parent exists.")
+		return
 
 	var spawned_any := false
 	spawned_any = _spawn_voice_ring_at_configured_point(spawn_parent) or spawned_any
@@ -311,14 +322,14 @@ func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
 	spawn_parent.add_child(ring)
 	ring.global_position = spawn_position
 
+	add_child(ring)
+
 	ring.on_hit_pawn.connect(_absorb_drop)
 
 	return true
 
-func _absorb_drop(pawn: Pawn, radius: float, emit_timestamp: int) -> void:
-
+func _absorb_drop(pawn: Pawn, _radius: float, emit_timestamp: int) -> void:
 	# print("CandleMan: _absorb_drop called with pawn: ", pawn, ", radius: ", radius)
-
 	if pawn == null:
 		return
 	if not (pawn is CandleDrop):
@@ -332,8 +343,10 @@ func _absorb_drop(pawn: Pawn, radius: float, emit_timestamp: int) -> void:
 		# print("CandleMan: Ignoring absorb for recently detached drop. emit_timestamp: ", emit_timestamp, ", drop.detach_timestamp: ", drop.detach_timestamp)
 		return
 
-	var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
-	drop.absorb_into(self, effective_absorb_duration, true)
+	if _pending_absorb_drops.has(drop):
+		return
+
+	_pending_absorb_drops.append(drop)
 
 
 func _spawn_voice_ring_at_configured_point(spawn_parent: Node) -> bool:
@@ -398,6 +411,47 @@ func _get_primary_interact_sfx_stream(remaining_drop_count: int) -> AudioStream:
 
 	return INTERACT_SFX_STREAMS[sfx_index]
 
+func _absorb_pending_drops() -> void:
+	if _pending_absorb_drops.is_empty():
+		return
+
+	var incoming_drop_count: int = 0
+
+	for drop in _pending_absorb_drops:
+		if drop == null or not is_instance_valid(drop):
+			continue
+		incoming_drop_count += 1
+
+	if incoming_drop_count <= 0:
+		_pending_absorb_drops.clear()
+		return
+
+	var standing_only_on_incoming_drops := true
+
+	for i in range(get_slide_collision_count()):
+		var collision := get_slide_collision(i)
+		if collision == null:
+			continue
+		if collision.get_normal().y > -0.5:
+			continue
+		if collision.get_collider() is CandleDrop:
+			if not _pending_absorb_drops.has(collision.get_collider()):
+				standing_only_on_incoming_drops = false
+				break
+			else:
+				continue
+		
+		standing_only_on_incoming_drops = false
+		break
+
+	for drop in _pending_absorb_drops:
+		if drop == null or not is_instance_valid(drop):
+			continue
+		var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
+		drop.absorb_into(self, effective_absorb_duration, true)
+
+	_apply_drop(drop_count + incoming_drop_count, true, !standing_only_on_incoming_drops)
+	_pending_absorb_drops.clear()
 
 func register_absorbed_drop(drop: CandleDrop, apply_height_and_count: bool = true) -> void:
 	if drop == null:
@@ -409,7 +463,7 @@ func register_absorbed_drop(drop: CandleDrop, apply_height_and_count: bool = tru
 	_absorbed_drops.append(drop)
 	if apply_height_and_count:
 		_play_absorb_sfx_for_drop_index(_absorbed_drops.size() - 1)
-		_apply_drop(drop_count + 1, true, true)
+		# _apply_drop(drop_count + 1, true, true)
 
 
 func on_absorbed_drop_animation_finished(drop: CandleDrop) -> void:
