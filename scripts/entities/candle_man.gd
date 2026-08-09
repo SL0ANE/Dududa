@@ -473,7 +473,7 @@ func _absorb_pending_drops() -> void:
 	if standing_only_on_incoming_drops:
 		for drop in incoming_drop_support_flags:
 			if not incoming_drop_support_flags[drop]:
-				print("CandleMan: standing on non-supported incoming drop: ", drop)
+				# print("CandleMan: standing on non-supported incoming drop: ", drop)
 				standing_only_on_incoming_drops = false
 				break
 
@@ -483,7 +483,7 @@ func _absorb_pending_drops() -> void:
 		var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
 		drop.absorb_into(self, effective_absorb_duration, true)
 
-	print("Absorbing %d drops. Standing only on incoming drops: %s" % [incoming_drop_count, standing_only_on_incoming_drops])
+	# print("Absorbing %d drops. Standing only on incoming drops: %s" % [incoming_drop_count, standing_only_on_incoming_drops])
 	_apply_drop(drop_count + incoming_drop_count, true, !standing_only_on_incoming_drops)
 	_pending_absorb_drops.clear()
 func register_absorbed_drop(drop: CandleDrop, apply_height_and_count: bool = true) -> void:
