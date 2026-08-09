@@ -416,11 +416,13 @@ func _absorb_pending_drops() -> void:
 		return
 
 	var incoming_drop_count: int = 0
+	var incoming_drop_support_flags := {}
 
 	for drop in _pending_absorb_drops:
 		if drop == null or not is_instance_valid(drop):
 			continue
 		incoming_drop_count += 1
+		incoming_drop_support_flags[drop] = false
 
 	if incoming_drop_count <= 0:
 		_pending_absorb_drops.clear()
@@ -435,14 +437,22 @@ func _absorb_pending_drops() -> void:
 		if collision.get_normal().y > -0.5:
 			continue
 		if collision.get_collider() is CandleDrop:
-			if not _pending_absorb_drops.has(collision.get_collider()):
+			var floor_drop := collision.get_collider() as CandleDrop
+			if not incoming_drop_support_flags.has(floor_drop):
 				standing_only_on_incoming_drops = false
 				break
-			else:
-				continue
+
+			incoming_drop_support_flags[floor_drop] = true
+			continue
 		
 		standing_only_on_incoming_drops = false
 		break
+
+	if standing_only_on_incoming_drops:
+		for drop in incoming_drop_support_flags:
+			if not incoming_drop_support_flags[drop]:
+				standing_only_on_incoming_drops = false
+				break
 
 	for drop in _pending_absorb_drops:
 		if drop == null or not is_instance_valid(drop):
