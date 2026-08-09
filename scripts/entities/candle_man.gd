@@ -322,8 +322,6 @@ func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
 	spawn_parent.add_child(ring)
 	ring.global_position = spawn_position
 
-	add_child(ring)
-
 	ring.on_hit_pawn.connect(_absorb_drop)
 
 	return true
