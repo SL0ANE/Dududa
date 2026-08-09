@@ -7,11 +7,8 @@ varying float v_top_bottom_distance;
 varying vec2 pos_offset;
 
 uniform vec4 base_color : source_color = vec4(1.0, 0.306, 0.522, 1.0);
-uniform float progress : hint_range(0.0, 1.0) = 0.5;
-uniform float radius_start = 8.0;
-uniform float radius_end = 64.0;
-uniform float pow0 = 2.0;
-uniform float pow1 = 2.75;
+uniform float radius_0 = 64.0;
+uniform float radius_1 = 64.0;
 
 
 void vertex() {
@@ -34,14 +31,10 @@ void vertex() {
 void fragment() {
 	vec2 uv = UV;
 	uv = floor(uv);
-	float safe_progress = clamp(progress, 0.0, 1.0);
-
-	float radius0 = floor(mix(radius_start, radius_end, pow(safe_progress, pow0)) / 0.5) * 0.5 + 0.25;
-	float radius1 = floor(mix(radius_start, radius_end, pow(safe_progress, pow1)) / 0.5) * 0.5 + 0.25;
 
 	vec2 center = vec2(v_left_right_distance * 0.5, v_top_bottom_distance * 0.5);
-	float sdCircle0 = length(uv - center) - radius0;
-	float sdCircle1 = length(uv - center) - radius1;
+	float sdCircle0 = length(uv - center) - radius_0;
+	float sdCircle1 = length(uv - center) - min(radius_1, radius_0);
 
 	float sdRing = max(sdCircle0, -sdCircle1);
 

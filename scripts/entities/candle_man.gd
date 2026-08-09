@@ -75,6 +75,7 @@ const ABSORB_SFX_STREAMS: Array[AudioStream] = [
 
 @export_group("Interaction")
 @export var voice_ring: PackedScene = preload("res://prefabs/entities/depth_control/voice_ring.tscn")
+@export var voice_ring_radius_end: float = 2.0
 @export var interact_sfx_player_path: NodePath = ^"SoundEffects/SFXSing"
 # Optional local point for primary interaction ring spawn.
 @export var voice_ring_spawn_point_path: NodePath
@@ -101,9 +102,11 @@ var drop_root: Node2D
 var animation_bridge: Node
 var _absorbed_drops: Array[CandleDrop] = []
 var _pending_absorb_drops: Array[CandleDrop] = []
+var _active_voice_rings := {}
 
 
 func _physics_process(delta: float) -> void:
+	_update_voice_ring_enabled_state()
 	_absorb_pending_drops()
 	super._physics_process(delta)
 
@@ -270,8 +273,17 @@ func _sync_jump_state() -> void:
 		jump_time_to_peak = _original_jump_time_to_peak
 		jump_time_to_fall = _original_jump_time_to_fall
 
+func _update_voice_ring_enabled_state() -> void:
+	interact_primary_enabled = is_on_floor()
+
+	if not interact_primary_enabled:
+		for ring in _active_voice_rings.keys():
+			var vr := ring as VoiceRing
+			if vr != null and is_instance_valid(vr):
+				vr.lock_radius_at_current_progress()
 
 func spawn_primary_voice_ring() -> void:
+
 	if voice_ring == null:
 		push_warning("CandleMan: voice_ring is not assigned.")
 		return
@@ -319,12 +331,26 @@ func _spawn_voice_ring_at(spawn_parent: Node, spawn_position: Vector2) -> bool:
 		return false
 
 	var ring := instance as VoiceRing
+	ring.configure_target_radius_end(maxf(voice_ring_radius_end, 0.0))
 	spawn_parent.add_child(ring)
 	ring.global_position = spawn_position
 
 	ring.on_hit_pawn.connect(_absorb_drop)
+	ring.on_progress_end.connect(_on_voice_ring_progress_end.bind(ring), CONNECT_ONE_SHOT)
+	ring.tree_exiting.connect(_on_voice_ring_tree_exiting.bind(ring), CONNECT_ONE_SHOT)
+	_active_voice_rings[ring] = true
 
 	return true
+
+
+func _on_voice_ring_progress_end(ring: VoiceRing) -> void:
+	if _active_voice_rings.has(ring):
+		_active_voice_rings.erase(ring)
+
+
+func _on_voice_ring_tree_exiting(ring: VoiceRing) -> void:
+	if _active_voice_rings.has(ring):
+		_active_voice_rings.erase(ring)
 
 func _absorb_drop(pawn: Pawn, _radius: float, emit_timestamp: int) -> void:
 	# print("CandleMan: _absorb_drop called with pawn: ", pawn, ", radius: ", radius)
@@ -427,28 +453,27 @@ func _absorb_pending_drops() -> void:
 		return
 
 	var standing_only_on_incoming_drops := true
+	var support_colliders := get_floor_support_colliders_cached()
+	if support_colliders.is_empty():
+		standing_only_on_incoming_drops = false
 
-	for i in range(get_slide_collision_count()):
-		var collision := get_slide_collision(i)
-		if collision == null:
-			continue
-		if collision.get_normal().y > -0.5:
-			continue
-		if collision.get_collider() is CandleDrop:
-			var floor_drop := collision.get_collider() as CandleDrop
+	for collider in support_colliders:
+		if collider is CandleDrop:
+			var floor_drop := collider as CandleDrop
 			if not incoming_drop_support_flags.has(floor_drop):
 				standing_only_on_incoming_drops = false
 				break
 
 			incoming_drop_support_flags[floor_drop] = true
 			continue
-		
+
 		standing_only_on_incoming_drops = false
 		break
 
 	if standing_only_on_incoming_drops:
 		for drop in incoming_drop_support_flags:
 			if not incoming_drop_support_flags[drop]:
+				print("CandleMan: standing on non-supported incoming drop: ", drop)
 				standing_only_on_incoming_drops = false
 				break
 
@@ -458,9 +483,9 @@ func _absorb_pending_drops() -> void:
 		var effective_absorb_duration := _compute_absorb_duration_for_new_drop()
 		drop.absorb_into(self, effective_absorb_duration, true)
 
+	print("Absorbing %d drops. Standing only on incoming drops: %s" % [incoming_drop_count, standing_only_on_incoming_drops])
 	_apply_drop(drop_count + incoming_drop_count, true, !standing_only_on_incoming_drops)
 	_pending_absorb_drops.clear()
-
 func register_absorbed_drop(drop: CandleDrop, apply_height_and_count: bool = true) -> void:
 	if drop == null:
 		return

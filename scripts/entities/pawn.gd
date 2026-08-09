@@ -76,6 +76,10 @@ enum PawnCollisionMode {
 @export_group("Active Actions")
 # Enable active horizontal movement input.
 @export var movement_enabled := true
+# Enable primary interaction input/dispatch.
+@export var interact_primary_enabled := true
+# Enable secondary interaction input/dispatch.
+@export var interact_secondary_enabled := true
 
 @export_group("Pawn Collision")
 # Pawn-to-pawn collision mode:
@@ -156,6 +160,7 @@ var last_fall_distance_units := 0.0
 var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
 var _pushed_prev := {}
+var _floor_support_colliders_cached: Array[Object] = []
 
 var _jump_height_on_jump := 0.0
 var _jump_time_to_peak_on_jump := 0.0
@@ -194,6 +199,7 @@ func _ready() -> void:
 	_jump_time_to_peak_on_jump = jump_time_to_peak
 	_jump_time_to_fall_on_jump = jump_time_to_fall
 	_contact_events_arm_frames_left = CONTACT_EVENTS_ARM_DELAY_FRAMES
+	_refresh_floor_support_colliders_cache()
 	# if _animation_tree:
 		# _animation_tree.active = true
 
@@ -281,7 +287,11 @@ func _physics_process(delta: float) -> void:
 	if not jump_enabled:
 		jump_pressed = false
 	var interact_primary_pressed: bool = command.get("interact_primary_pressed", false)
+	if not interact_primary_enabled:
+		interact_primary_pressed = false
 	var interact_secondary_pressed: bool = command.get("interact_secondary_pressed", false)
+	if not interact_secondary_enabled:
+		interact_secondary_pressed = false
 
 	if interact_primary_pressed:
 		on_interact_primary()
@@ -320,6 +330,7 @@ func _physics_process(delta: float) -> void:
 		_external_velocity = Vector2.ZERO
 		_update_animation_state(look_axis)
 		_process_move_lifecycle(0.0, move_axis, was_on_ground)
+		_refresh_floor_support_colliders_cache()
 		_tick_contact_event_arm_delay()
 		return
 
@@ -338,6 +349,7 @@ func _physics_process(delta: float) -> void:
 	_update_animation_state(look_axis)
 	var current_velocity := GameUnits.pixels_to_units(velocity.x)
 	_process_move_lifecycle(current_velocity, move_axis, is_on_floor())
+	_refresh_floor_support_colliders_cache()
 	_tick_contact_event_arm_delay()
 
 
@@ -668,6 +680,57 @@ func _is_current_floor_from_pawn() -> bool:
 			return true
 
 	return false
+
+
+func get_floor_support_colliders_cached() -> Array[Object]:
+	return _floor_support_colliders_cached.duplicate()
+
+
+func _refresh_floor_support_colliders_cache() -> void:
+	_floor_support_colliders_cached = _get_floor_support_colliders()
+
+
+func _get_floor_support_colliders(probe_distance_px: float = 2.0) -> Array[Object]:
+	if not is_on_floor():
+		return []
+
+	var bounds := _get_collision_bounds_pixels()
+	if bounds.size == Vector2.ZERO:
+		return []
+
+	var safe_probe_px := maxf(probe_distance_px, 0.5)
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(maxf(bounds.size.x - 1.0, 1.0), safe_probe_px)
+
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = shape
+	query.transform = Transform2D(0.0, Vector2(bounds.position.x + bounds.size.x * 0.5, bounds.position.y + bounds.size.y + safe_probe_px * 0.5))
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid()]
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+
+	var space_state := get_world_2d().direct_space_state
+	var hits := space_state.intersect_shape(query, 32)
+	var supports: Array[Object] = []
+	var seen := {}
+	for hit in hits:
+		var collider: Object = hit.get("collider") as Object
+		if collider == null:
+			continue
+		if not is_instance_valid(collider):
+			continue
+		if collider == self:
+			continue
+
+		var id: int = collider.get_instance_id()
+		if seen.has(id):
+			continue
+
+		seen[id] = true
+		supports.append(collider)
+
+	return supports
 
 
 func _stabilize_idle_solid_pawn(move_axis: float, jump_pressed: bool, pre_move_position: Vector2) -> void:

@@ -42,11 +42,15 @@ var expr_airborne_progress := 0.0
 var expr_vertical_speed_norm := 0.0
 var expr_time_since_last_move_seconds := 0.0
 var expr_time_since_last_jump_seconds := 0.0
+var expr_primary_interact_enabled := true
+var expr_secondary_interact_enabled := true
 var expr_primary_interact_requested := false
+var expr_secondary_interact_requested := false
 
 # Always true, kept for compatibility with existing tree expressions.
 var expr_bridge_connected = true
 var _pending_primary_interact_request := false
+var _pending_secondary_interact_request := false
 
 func _ready() -> void:
 	_pawn = get_node_or_null(pawn_path) as Pawn
@@ -61,6 +65,8 @@ func _ready() -> void:
 		_pawn.jumped.connect(_on_pawn_jumped)
 	if not _pawn.interacted_primary.is_connected(_on_pawn_interacted_primary):
 		_pawn.interacted_primary.connect(_on_pawn_interacted_primary)
+	if not _pawn.interacted_secondary.is_connected(_on_pawn_interacted_secondary):
+		_pawn.interacted_secondary.connect(_on_pawn_interacted_secondary)
 
 	if _animation_tree != null:
 		register_animation_tree(_animation_tree, _resolve_tree_animation_player(_animation_tree), force_bridge_expression_base)
@@ -146,8 +152,12 @@ func _sync_expression_values(delta: float) -> void:
 	expr_is_pushed = false
 	expr_time_since_last_move_seconds = _time_since_last_move_seconds
 	expr_time_since_last_jump_seconds = _time_since_last_jump_seconds
+	expr_primary_interact_enabled = _pawn.interact_primary_enabled
+	expr_secondary_interact_enabled = _pawn.interact_secondary_enabled
 	expr_primary_interact_requested = _pending_primary_interact_request
+	expr_secondary_interact_requested = _pending_secondary_interact_request
 	_pending_primary_interact_request = false
+	_pending_secondary_interact_request = false
 
 	expr_airborne_progress = _compute_airborne_progress()
 
@@ -167,6 +177,10 @@ func _on_pawn_jumped(_jump_velocity: float) -> void:
 
 func _on_pawn_interacted_primary() -> void:
 	_pending_primary_interact_request = true
+
+
+func _on_pawn_interacted_secondary() -> void:
+	_pending_secondary_interact_request = true
 
 
 func play_primary_interact_effect() -> void:

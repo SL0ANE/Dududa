@@ -3,8 +3,6 @@
 [ext_resource type="PackedScene" uid="uid://tltu20ljw8ss" path="res://prefabs/background/pixel_grid_background.tscn" id="1_bvgt3"]
 [ext_resource type="TileSet" uid="uid://djgiy4t0pf4c5" path="res://tile1.tres" id="3_ffon8"]
 [ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="4_0msf5"]
-[ext_resource type="PackedScene" uid="uid://bsharveg5e1vc" path="res://prefabs/entities/mind_control/mine_control_wizard_npc.tscn" id="5_rvn7p"]
-[ext_resource type="PackedScene" uid="uid://cbrdaunhnaaqp" path="res://prefabs/entities/mind_control/mine_control_wizard_player.tscn" id="6_dkj5e"]
 [ext_resource type="PackedScene" uid="uid://day2tad1yvxs2" path="res://prefabs/entities/depth_control/death_control_wizard.tscn" id="7_7jvo1"]
 [ext_resource type="PackedScene" uid="uid://tlm4spedijs0" path="res://prefabs/entities/skulls/skull_regular_0.tscn" id="8_ffon8"]
 
@@ -15,14 +13,6 @@ position = Vector2(329, 54)
 zoom = Vector2(1.725, 1.725)
 
 [node name="PixelGridBackgroundLayer" parent="." unique_id=2133907842 instance=ExtResource("1_bvgt3")]
-
-[node name="MindControlWizardNPC" parent="." unique_id=1275284154 instance=ExtResource("5_rvn7p")]
-visible = false
-position = Vector2(-40, 40)
-
-[node name="MindControlWizardPlayer" parent="." unique_id=772498426 instance=ExtResource("6_dkj5e")]
-visible = false
-position = Vector2(32, 40)
 
 [node name="Node" type="Node" parent="." unique_id=752405716]
 
