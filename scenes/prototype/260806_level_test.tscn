@@ -4,7 +4,7 @@
 [ext_resource type="TileSet" uid="uid://djgiy4t0pf4c5" path="res://tile1.tres" id="3_ffon8"]
 [ext_resource type="PackedScene" uid="uid://bn8gjg4lf1yac" path="res://prefabs/levels/generic/note_table.tscn" id="4_0msf5"]
 [ext_resource type="PackedScene" uid="uid://day2tad1yvxs2" path="res://prefabs/entities/depth_control/death_control_wizard.tscn" id="7_7jvo1"]
-[ext_resource type="PackedScene" uid="uid://tlm4spedijs0" path="res://prefabs/entities/skulls/skull_regular_0.tscn" id="8_ffon8"]
+[ext_resource type="PackedScene" uid="uid://tlm4spedijs0" path="res://prefabs/entities/skulls/skull_regular.tscn" id="8_ffon8"]
 
 [node name="TestScene" type="Node2D" unique_id=1432336216]
 position = Vector2(329, 54)

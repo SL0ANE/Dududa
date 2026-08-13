@@ -20,5 +20,6 @@ script = ExtResource("2_0n7tf")
 radius_start = 0.25
 radius_end = 2.0
 source_sprite_scale = 8.0
+duration = 0.4
 pow0 = 1.0
 pow1 = 2.0

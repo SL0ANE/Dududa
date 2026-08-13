@@ -1,12 +1,11 @@
-[gd_scene format=3 uid="uid://tlm4spedijs0"]
+[gd_scene format=3 uid="uid://cabdp2gwk2lpq"]
 
-[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/candle_drop.gd" id="1_7lyv0"]
-[ext_resource type="SpriteFrames" uid="uid://drb5bun2gdg3w" path="res://aseprite/resources/entities/skulls/regular_0.aseprite" id="2_tqhs2"]
-[ext_resource type="SpriteFrames" uid="uid://c07o3wlfr3kxi" path="res://aseprite/resources/entities/skulls/regular_1.aseprite" id="3_j3s1n"]
-[ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="3_tqhs2"]
-[ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="4_3ljwn"]
-[ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="4_jxkf8"]
-[ext_resource type="AudioStream" uid="uid://1m0tjuksnkmm" path="res://sound_effects/character/land/1.wav" id="5_ndhht"]
+[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/candle_drop.gd" id="1_yym5h"]
+[ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="4_ddt8l"]
+[ext_resource type="AudioStream" uid="uid://1m0tjuksnkmm" path="res://sound_effects/character/land/1.wav" id="5_xxs6t"]
+[ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="6_2yho4"]
+[ext_resource type="SpriteFrames" uid="uid://ded56hdogafc" path="res://aseprite/resources/entities/skulls/slime_0.aseprite" id="6_iw75m"]
+[ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="7_e10l7"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j3s1n"]
 radius = 4.0
@@ -416,21 +415,21 @@ _data = {
 &"Spin": SubResource("Animation_e026n")
 }
 
-[node name="SkullRegular0" type="CharacterBody2D" unique_id=1514261021]
+[node name="SkullSlime" type="CharacterBody2D" unique_id=1514261021]
 floor_max_angle = 1.3089969
-script = ExtResource("1_7lyv0")
-sprite_presets = Array[SpriteFrames]([ExtResource("2_tqhs2"), ExtResource("3_j3s1n")])
+script = ExtResource("1_yym5h")
+sprite_presets = Array[SpriteFrames]([ExtResource("6_iw75m")])
 pawn_collision_mode = 2
 push_ground_only = false
-land_sfx_streams = Array[AudioStream]([ExtResource("4_3ljwn"), ExtResource("5_ndhht")])
+land_sfx_streams = Array[AudioStream]([ExtResource("4_ddt8l"), ExtResource("5_xxs6t")])
 land_sfx_distance_thresholds = Array[float]([4.0])
 collision_shape_paths = Array[NodePath]([NodePath("CollisionShape2D"), NodePath("CollisionShape2D2")])
 sprite_default_facing = 1
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=565443965]
 position = Vector2(0, -5)
-sprite_frames = ExtResource("2_tqhs2")
-animation = &"Disabled"
+sprite_frames = ExtResource("6_iw75m")
+animation = &"Idle"
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2144877810]
 y_sort_enabled = true
@@ -445,16 +444,16 @@ shape = SubResource("CircleShape2D_j3s1n")
 [node name="SoundEffects" type="Node2D" parent="." unique_id=1795731196]
 
 [node name="SFXJump" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1632851258]
-stream = ExtResource("3_tqhs2")
+stream = ExtResource("6_2yho4")
 
 [node name="SFXLand" type="AudioStreamPlayer2D" parent="SoundEffects" unique_id=1837527072]
-stream = ExtResource("4_3ljwn")
+stream = ExtResource("4_ddt8l")
 volume_db = 3.0
 attenuation = 0.0
 
 [node name="AnimationTree" type="AnimationTree" parent="." unique_id=638454763]
 root_node = NodePath(".")
-tree_root = ExtResource("4_jxkf8")
+tree_root = ExtResource("7_e10l7")
 advance_expression_base_node = NodePath("..")
 anim_player = NodePath("../AnimationPlayer")
 parameters/EnabledState/Jump/blend_position = 0.0
