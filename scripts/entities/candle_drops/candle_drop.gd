@@ -7,9 +7,6 @@ enum DropState {
 	ABSORBED,
 }
 
-
-@export_group("Nodes")
-
 @export_group("Absorb")
 @export var absorb_animation_param_path: StringName = &"parameters/conditions/is_absorbing"
 # Horizontal offset for alternating left/right layout while absorbed, in pixels.
@@ -99,13 +96,14 @@ func _absorb_into_internal(candle_man: CandleMan, absorb_duration_seconds: float
 	if candle_man == null:
 		return
 
+
 	if state == DropState.ABSORBED and _candle_man == candle_man and (not _absorb_animating):
 		return
 
 	if state == DropState.ABSORBED:
 		detach_to_independent()
 
-	_on_absorb(_candle_man)
+	_on_absorb(candle_man)
 
 	_current_facing = 0 if randf() < 0.5 else 1
 	_sprite_preset_index = randi() % max(sprite_presets.size(), 1)

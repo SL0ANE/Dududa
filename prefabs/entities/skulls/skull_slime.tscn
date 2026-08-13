@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://cabdp2gwk2lpq"]
 
-[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/candle_drop.gd" id="1_yym5h"]
+[ext_resource type="Script" uid="uid://14ki8up3tdam" path="res://scripts/entities/candle_drops/slime_drop.gd" id="1_smwad"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="4_ddt8l"]
 [ext_resource type="AudioStream" uid="uid://1m0tjuksnkmm" path="res://sound_effects/character/land/1.wav" id="5_xxs6t"]
 [ext_resource type="AudioStream" uid="uid://e5a4grqvplml" path="res://sound_effects/character/jump/7.wav" id="6_2yho4"]
 [ext_resource type="SpriteFrames" uid="uid://ded56hdogafc" path="res://aseprite/resources/entities/skulls/slime_0.aseprite" id="6_iw75m"]
-[ext_resource type="AnimationNodeStateMachine" uid="uid://b5rkbgnw55jky" path="res://animations/candle_drop.tres" id="7_e10l7"]
+[ext_resource type="AnimationNodeStateMachine" uid="uid://b5uiaxd6h5u4l" path="res://animations/slime_drop.tres" id="7_e10l7"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_j3s1n"]
 radius = 4.0
@@ -65,6 +65,60 @@ tracks/1/keys = {
 "values": ["Blink"]
 }
 
+[sub_resource type="Animation" id="Animation_smwad"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../AnimatedSprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [0, 1, 2]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("../AnimatedSprite2D:animation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": ["BounceHorizontal"]
+}
+
+[sub_resource type="Animation" id="Animation_yym5h"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("../AnimatedSprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [0, 1, 2]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("../AnimatedSprite2D:animation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": ["BounceVertical"]
+}
+
 [sub_resource type="Animation" id="Animation_j3s1n"]
 length = 0.1
 loop_mode = 1
@@ -122,6 +176,7 @@ tracks/1/keys = {
 
 [sub_resource type="Animation" id="Animation_glm8n"]
 length = 0.5
+loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -401,6 +456,8 @@ tracks/1/keys = {
 _data = {
 &"Air": SubResource("Animation_jxkf8"),
 &"Blink": SubResource("Animation_3ljwn"),
+&"BounceHorizontal": SubResource("Animation_smwad"),
+&"BounceVertical": SubResource("Animation_yym5h"),
 &"Disabled": SubResource("Animation_j3s1n"),
 &"Hit": SubResource("Animation_ndhht"),
 &"Idle": SubResource("Animation_glm8n"),
@@ -417,7 +474,7 @@ _data = {
 
 [node name="SkullSlime" type="CharacterBody2D" unique_id=1514261021]
 floor_max_angle = 1.3089969
-script = ExtResource("1_yym5h")
+script = ExtResource("1_smwad")
 sprite_presets = Array[SpriteFrames]([ExtResource("6_iw75m")])
 pawn_collision_mode = 2
 push_ground_only = false
@@ -429,7 +486,7 @@ sprite_default_facing = 1
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=565443965]
 position = Vector2(0, -5)
 sprite_frames = ExtResource("6_iw75m")
-animation = &"Idle"
+animation = &""
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2144877810]
 y_sort_enabled = true
@@ -456,7 +513,7 @@ root_node = NodePath(".")
 tree_root = ExtResource("7_e10l7")
 advance_expression_base_node = NodePath("..")
 anim_player = NodePath("../AnimationPlayer")
-parameters/EnabledState/Jump/blend_position = 0.0
+parameters/EnabledMachine/Jump/blend_position = 0.0
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1299353299]
 active = false

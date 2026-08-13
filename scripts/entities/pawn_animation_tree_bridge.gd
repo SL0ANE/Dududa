@@ -171,15 +171,15 @@ func _update_elapsed_activity_timers(moving: bool, delta: float) -> void:
 	_time_since_last_jump_seconds += maxf(delta, 0.0)
 
 
-func _on_pawn_jumped(_jump_velocity: float) -> void:
+func _on_pawn_jumped(_pawn: Pawn, _jump_velocity: float) -> void:
 	_time_since_last_jump_seconds = 0.0
 
 
-func _on_pawn_interacted_primary() -> void:
+func _on_pawn_interacted_primary(_pawn: Pawn) -> void:
 	_pending_primary_interact_request = true
 
 
-func _on_pawn_interacted_secondary() -> void:
+func _on_pawn_interacted_secondary(_pawn: Pawn) -> void:
 	_pending_secondary_interact_request = true
 
 

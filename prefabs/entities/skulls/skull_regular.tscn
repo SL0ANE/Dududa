@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://tlm4spedijs0"]
 
-[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/candle_drop.gd" id="1_m7p6f"]
+[ext_resource type="Script" uid="uid://mbea8qe7jfcn" path="res://scripts/entities/candle_drops/candle_drop.gd" id="1_m7p6f"]
 [ext_resource type="SpriteFrames" uid="uid://drb5bun2gdg3w" path="res://aseprite/resources/entities/skulls/regular_0.aseprite" id="2_k6sf1"]
 [ext_resource type="SpriteFrames" uid="uid://c07o3wlfr3kxi" path="res://aseprite/resources/entities/skulls/regular_1.aseprite" id="3_6pnvd"]
 [ext_resource type="AudioStream" uid="uid://xja0t12g1mhb" path="res://sound_effects/character/land/0.wav" id="4_k5w2v"]

@@ -1,0 +1,43 @@
+[gd_resource type="AnimationNodeStateMachine" format=3 uid="uid://b5uiaxd6h5u4l"]
+
+[ext_resource type="AnimationNodeStateMachine" uid="uid://bvom5pbdyh03j" path="res://animations/candle_drop_disabled.tres" id="1_mf8x8"]
+[ext_resource type="AnimationNodeStateMachine" uid="uid://coh50ia316q2u" path="res://animations/slime_drop_enabled.tres" id="2_mf8x8"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_05gl8"]
+animation = &"Hit"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_bax0q"]
+animation = &"Sing"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_05gl8"]
+advance_mode = 2
+advance_expression = "expr_bridge_connected"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jftiy"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jcant"]
+advance_mode = 2
+advance_expression = "!expr_bridge_connected"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_htoib"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_bax0q"]
+advance_mode = 2
+
+[resource]
+states/DisabledState/node = ExtResource("1_mf8x8")
+states/DisabledState/position = Vector2(23, 200.29628)
+states/EnabledMachine/node = ExtResource("2_mf8x8")
+states/EnabledMachine/position = Vector2(280, 200.29628)
+states/End/position = Vector2(769, 73)
+states/Hit/node = SubResource("AnimationNodeAnimation_05gl8")
+states/Hit/position = Vector2(151, 116)
+states/Sing/node = SubResource("AnimationNodeAnimation_bax0q")
+states/Sing/position = Vector2(479, 200.29628)
+states/Start/position = Vector2(280, 372.29626)
+transitions = ["DisabledState", "Hit", SubResource("AnimationNodeStateMachineTransition_05gl8"), "Hit", "EnabledMachine", SubResource("AnimationNodeStateMachineTransition_jftiy"), "EnabledMachine", "DisabledState", SubResource("AnimationNodeStateMachineTransition_jcant"), "Sing", "EnabledMachine", SubResource("AnimationNodeStateMachineTransition_htoib"), "Start", "EnabledMachine", SubResource("AnimationNodeStateMachineTransition_bax0q")]
+graph_offset = Vector2(-149, 41)

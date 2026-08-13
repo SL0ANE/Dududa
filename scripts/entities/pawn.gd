@@ -2,22 +2,24 @@ extends CharacterBody2D
 class_name Pawn
 
 
-signal jumped(jump_velocity: float)
-signal turned(old_facing: int, new_facing: int)
-signal moved(current_velocity: float, input_axis: float, grounded: bool)
-signal move_started(current_velocity: float, input_axis: float, grounded: bool)
-signal move_active(current_velocity: float, input_axis: float, grounded: bool)
-signal move_ended(current_velocity: float, input_axis: float, grounded: bool)
-signal landed(impact_velocity: Vector2, fall_distance_units: float)
-signal wall_hit(collision_normal: Vector2, impact_velocity: Vector2)
-signal push_started(other: Pawn, mode: int, direction: float)
-signal push_active(other: Pawn, mode: int, direction: float, overlap: float)
-signal push_ended(other: Pawn, mode: int)
-signal pushed_started(other: Pawn, mode: int, direction: float)
-signal pushed_active(other: Pawn, mode: int, direction: float, overlap: float)
-signal pushed_ended(other: Pawn, mode: int)
-signal interacted_primary()
-signal interacted_secondary()
+signal jumped(pawn: Pawn, jump_velocity: float)
+signal turned(pawn: Pawn, old_facing: int, new_facing: int)
+signal moved(pawn: Pawn, current_velocity: float, input_axis: float, grounded: bool)
+signal move_started(pawn: Pawn, current_velocity: float, input_axis: float, grounded: bool)
+signal move_active(pawn: Pawn, current_velocity: float, input_axis: float, grounded: bool)
+signal move_ended(pawn: Pawn, current_velocity: float, input_axis: float, grounded: bool)
+signal left_ground(pawn: Pawn)
+signal started_falling(pawn: Pawn)
+signal landed(pawn: Pawn, impact_velocity: Vector2, fall_distance_units: float)
+signal wall_hit(pawn: Pawn, collision_normal: Vector2, impact_velocity: Vector2)
+signal push_started(pawn: Pawn, other: Pawn, mode: int, direction: float)
+signal push_active(pawn: Pawn, other: Pawn, mode: int, direction: float, overlap: float)
+signal push_ended(pawn: Pawn, other: Pawn, mode: int)
+signal pushed_started(pawn: Pawn, other: Pawn, mode: int, direction: float)
+signal pushed_active(pawn: Pawn, other: Pawn, mode: int, direction: float, overlap: float)
+signal pushed_ended(pawn: Pawn, other: Pawn, mode: int)
+signal interacted_primary(pawn: Pawn)
+signal interacted_secondary(pawn: Pawn)
 
 
 const PAWN_GROUP: StringName = &"pawn"
@@ -70,8 +72,6 @@ enum PawnCollisionMode {
 @export var external_drag_ground := 220.0
 # Horizontal drag applied to external velocity while airborne.
 @export var external_drag_air := 80.0
-# Clears downward external Y velocity when grounded.
-@export var clear_downward_external_on_ground := true
 
 @export_group("Active Actions")
 # Enable active horizontal movement input.
@@ -144,11 +144,14 @@ var _next_footstep_sfx_index := 0
 # Driven velocity is produced by the pawn movement model (input, jump profile).
 var _driven_velocity := Vector2.ZERO
 # External velocity is produced by gameplay systems (hit, wind, explosion).
-# Keep this channel additive so external impulses do not get overwritten by jump logic.
+# Keep this channel additive on X so external horizontal impulses do not get overwritten.
 var _external_velocity := Vector2.ZERO
+# Vertical movement is computed through a single channel to avoid driven/external Y cancellation.
+var _vertical_velocity := 0.0
 var _air_phase_time := 0.0
 var _normalized_air_phase := 0.0
 var _was_rising := false
+var _was_falling := false
 var _coyote_time_left := 0.0
 var _jump_count_since_ground := 0
 var _last_pawn_collision_mode := -1
@@ -275,9 +278,6 @@ func _physics_process(delta: float) -> void:
 		elif global_position.y < _airborne_peak_y_px:
 			_airborne_peak_y_px = global_position.y
 
-	if was_on_ground:
-		_driven_velocity.y = 0.0
-
 	var command := _build_command(delta)
 	var move_axis: float = command.get("move_axis", 0.0)
 	if not movement_enabled:
@@ -295,11 +295,11 @@ func _physics_process(delta: float) -> void:
 
 	if interact_primary_pressed:
 		on_interact_primary()
-		interacted_primary.emit()
+		interacted_primary.emit(self)
 
 	if interact_secondary_pressed:
 		on_interact_secondary()
-		interacted_secondary.emit()
+		interacted_secondary.emit(self)
 
 	var jumps_allowed := maxi(max_jump_count, 0)
 	var has_jumps_left := _jump_count_since_ground < jumps_allowed
@@ -311,13 +311,13 @@ func _physics_process(delta: float) -> void:
 		_jump_time_to_fall_on_jump = jump_time_to_fall
 
 		var jump_velocity := _compute_jump_velocity()
-		_driven_velocity.y = GameUnits.units_to_pixels(jump_velocity)
+		_vertical_velocity = GameUnits.units_to_pixels(jump_velocity)
 		_air_phase_time = 0.0
 		_was_rising = true
 		_coyote_time_left = 0.0
 		_jump_count_since_ground += 1
 		on_jump(jump_velocity)
-		jumped.emit(jump_velocity)
+		jumped.emit(self, jump_velocity)
 
 	_apply_vertical_velocity(delta, was_on_ground)
 	_apply_horizontal_velocity(move_axis, delta)
@@ -328,6 +328,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		_driven_velocity = Vector2.ZERO
 		_external_velocity = Vector2.ZERO
+		_vertical_velocity = 0.0
 		_update_animation_state(look_axis)
 		_process_move_lifecycle(0.0, move_axis, was_on_ground)
 		_refresh_floor_support_colliders_cache()
@@ -336,7 +337,8 @@ func _physics_process(delta: float) -> void:
 
 	# Merge channels only at the end of the frame.
 	var pre_move_position := global_position
-	velocity = _driven_velocity + _external_velocity
+	var pre_slide_vertical_velocity := _vertical_velocity
+	velocity = Vector2(_driven_velocity.x + _external_velocity.x, _vertical_velocity)
 	var pre_slide_velocity := velocity
 	move_and_slide()
 	_try_floor_snap_after_slide(was_on_ground, was_on_pawn_floor, jump_pressed)
@@ -345,7 +347,7 @@ func _physics_process(delta: float) -> void:
 	_apply_pawn_push_collisions()
 	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
 	# Reconcile channels with collision result to avoid drift over time.
-	_sync_velocity_components_after_slide()
+	_sync_velocity_components_after_slide(pre_slide_vertical_velocity)
 	_update_animation_state(look_axis)
 	var current_velocity := GameUnits.pixels_to_units(velocity.x)
 	_process_move_lifecycle(current_velocity, move_axis, is_on_floor())
@@ -450,6 +452,9 @@ func _set_collider_height_units(new_height_units: float) -> void:
 
 	var was_on_ground := is_on_floor()
 
+	if was_on_ground and _vertical_velocity > 0.0:
+		_vertical_velocity = 0.0
+
 	var old_height_px := _shape_half_height_pixels(collision_shape.shape) * 2.0
 	var new_height_px := GameUnits.units_to_pixels(new_height_units)
 	var shape := collision_shape.shape
@@ -488,8 +493,7 @@ func _depenetrate_up_after_collider_resize(max_up_px: int) -> void:
 
 		global_position += up
 		velocity.y = minf(velocity.y, 0.0)
-		_driven_velocity.y = minf(_driven_velocity.y, 0.0)
-		_external_velocity.y = minf(_external_velocity.y, 0.0)
+		_vertical_velocity = minf(_vertical_velocity, 0.0)
 		return
 
 
@@ -527,7 +531,7 @@ func _apply_vertical_velocity(delta: float, was_on_ground: bool) -> void:
 		_was_rising = false
 		return
 
-	var is_rising := _driven_velocity.y < 0.0
+	var is_rising := _vertical_velocity < 0.0
 	if is_rising != _was_rising:
 		_air_phase_time = 0.0
 		_was_rising = is_rising
@@ -536,10 +540,10 @@ func _apply_vertical_velocity(delta: float, was_on_ground: bool) -> void:
 	var phase_time := _jump_time_to_peak_on_jump if is_rising else _jump_time_to_fall_on_jump
 	_normalized_air_phase = clampf(_air_phase_time / maxf(phase_time, 0.001), 0.0, 1.0)
 
-	var gravity := _compute_gravity(is_rising)
+	var gravity := compute_gravity(is_rising)
 	var gravity_curve_multiplier := maxf(_sample_curve(jump_gravity_curve, _normalized_air_phase, 1.0), 0.0)
 	_normalized_air_phase = (_normalized_air_phase - 1.0 if is_rising else _normalized_air_phase)
-	_driven_velocity.y += GameUnits.units_to_pixels(gravity * gravity_curve_multiplier) * delta
+	_vertical_velocity += GameUnits.units_to_pixels(gravity * gravity_curve_multiplier) * delta
 
 
 func _apply_external_forces(delta: float) -> void:
@@ -547,15 +551,14 @@ func _apply_external_forces(delta: float) -> void:
 	var drag_pixels := GameUnits.units_to_pixels(maxf(drag, 0.0))
 	_external_velocity.x = move_toward(_external_velocity.x, 0.0, drag_pixels * delta)
 
-	# Keep Y drag lower by default so knock-up and knock-down feel impactful.
-	_external_velocity.y = move_toward(_external_velocity.y, 0.0, drag_pixels * 0.5 * delta)
 
-
-func _sync_velocity_components_after_slide() -> void:
-	if is_on_floor() and clear_downward_external_on_ground and _external_velocity.y > 0.0:
-		_external_velocity.y = 0.0
-
-	_driven_velocity = velocity - _external_velocity
+func _sync_velocity_components_after_slide(pre_slide_vertical_velocity: float) -> void:
+	_driven_velocity.x = velocity.x - _external_velocity.x
+	# If callbacks changed vertical velocity after slide (e.g. landed bounce), keep authored value.
+	if is_equal_approx(_vertical_velocity, pre_slide_vertical_velocity):
+		_vertical_velocity = velocity.y
+	if is_on_floor() and _vertical_velocity > 0.0:
+		_vertical_velocity = 0.0
 
 
 func _update_animation_state(look_axis: float) -> void:
@@ -567,7 +570,7 @@ func _update_animation_state(look_axis: float) -> void:
 
 	if old_facing != _facing:
 		on_turn(old_facing, _facing)
-		turned.emit(old_facing, _facing)
+		turned.emit(self, old_facing, _facing)
 
 	if _sprite and sprite_default_facing != 1:
 		var clamped_default_facing := 0 if sprite_default_facing < 1 else 2
@@ -575,10 +578,21 @@ func _update_animation_state(look_axis: float) -> void:
 
 
 func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_velocity: Vector2) -> void:
+	var on_ground_now := is_on_floor()
+	if was_on_ground and not on_ground_now:
+		on_left_ground()
+		left_ground.emit(self)
+
+	var is_falling_now := not on_ground_now and velocity.y > 0.0
+	if is_falling_now and not _was_falling:
+		on_started_falling()
+		started_falling.emit(self)
+	_was_falling = is_falling_now
+
 	if _contact_events_arm_frames_left > 0:
 		return
 
-	if not was_on_ground and is_on_floor():
+	if not was_on_ground and on_ground_now:
 		var impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
 		var fall_distance_units := 0.0
 		if not is_inf(_airborne_start_y_px):
@@ -589,13 +603,13 @@ func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_v
 			_airborne_start_y_px = INF
 			_airborne_peak_y_px = INF
 		on_landed(impact_velocity, fall_distance_units)
-		landed.emit(impact_velocity, fall_distance_units)
+		landed.emit(self, impact_velocity, fall_distance_units)
 
 	if not was_on_wall and is_on_wall():
 		var wall_normal := _get_wall_collision_normal()
 		var wall_impact_velocity := GameUnits.pixels_to_units_v2(pre_slide_velocity)
 		on_wall_hit(wall_normal, wall_impact_velocity)
-		wall_hit.emit(wall_normal, wall_impact_velocity)
+		wall_hit.emit(self, wall_normal, wall_impact_velocity)
 
 
 func _tick_contact_event_arm_delay() -> void:
@@ -648,15 +662,13 @@ func _try_floor_snap_after_slide(was_on_ground: bool, was_on_pawn_floor: bool, j
 	# Do not re-snap while moving upward (jump, knock-up, moving platforms, etc.).
 	if velocity.y < 0.0:
 		return
-	if _driven_velocity.y < 0.0:
-		return
-	if _external_velocity.y < 0.0:
+	if _vertical_velocity < 0.0:
 		return
 	if floor_snap_length_units <= 0.0:
 		return
 
 	var max_fall_px := GameUnits.units_to_pixels(maxf(floor_snap_max_fall_speed, 0.0))
-	if _driven_velocity.y > max_fall_px:
+	if _vertical_velocity > max_fall_px:
 		return
 
 	# Keep ground contact when descending slopes so locomotion state stays stable.
@@ -768,7 +780,7 @@ func _should_skip_move_and_slide_for_idle_solid(move_axis: float, jump_pressed: 
 		return false
 	if jump_pressed:
 		return false
-	if absf(_external_velocity.x) > 0.001 or absf(_external_velocity.y) > 0.001:
+	if absf(_external_velocity.x) > 0.001 or absf(_vertical_velocity) > 0.001:
 		return false
 
 	# Keep updating normally if support below was lost.
@@ -918,19 +930,19 @@ func _process_move_lifecycle(current_velocity: float, input_axis: float, grounde
 
 	if is_moving_now and not _was_moving:
 		on_move_started(current_velocity, input_axis, grounded)
-		move_started.emit(current_velocity, input_axis, grounded)
+		move_started.emit(self, current_velocity, input_axis, grounded)
 
 	if is_moving_now:
 		# Keep active updates in air too, so animation/state machines can react continuously.
 		on_move_active(current_velocity, input_axis, grounded)
-		move_active.emit(current_velocity, input_axis, grounded)
+		move_active.emit(self, current_velocity, input_axis, grounded)
 		# Legacy compatibility.
 		on_move(current_velocity, input_axis, grounded)
-		moved.emit(current_velocity, input_axis, grounded)
+		moved.emit(self, current_velocity, input_axis, grounded)
 
 	if not is_moving_now and _was_moving:
 		on_move_ended(current_velocity, input_axis, grounded)
-		move_ended.emit(current_velocity, input_axis, grounded)
+		move_ended.emit(self, current_velocity, input_axis, grounded)
 
 	_was_moving = is_moving_now
 
@@ -963,10 +975,10 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 
 		if not _pushing_prev.has(key):
 			on_push_started(other, mode, direction)
-			push_started.emit(other, mode, direction)
+			push_started.emit(self, other, mode, direction)
 
 		on_push_active(other, mode, direction, overlap)
-		push_active.emit(other, mode, direction, overlap)
+		push_active.emit(self, other, mode, direction, overlap)
 
 	for key in _pushing_prev.keys():
 		if pushing_curr.has(key):
@@ -975,7 +987,7 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 		var prev_other := prev["other"] as Pawn
 		var prev_mode := int(prev["mode"])
 		on_push_ended(prev_other, prev_mode)
-		push_ended.emit(prev_other, prev_mode)
+		push_ended.emit(self, prev_other, prev_mode)
 
 	for key in pushed_curr.keys():
 		var data: Dictionary = pushed_curr[key]
@@ -986,10 +998,10 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 
 		if not _pushed_prev.has(key):
 			on_pushed_started(other, mode, direction)
-			pushed_started.emit(other, mode, direction)
+			pushed_started.emit(self, other, mode, direction)
 
 		on_pushed_active(other, mode, direction, overlap)
-		pushed_active.emit(other, mode, direction, overlap)
+		pushed_active.emit(self, other, mode, direction, overlap)
 
 	for key in _pushed_prev.keys():
 		if pushed_curr.has(key):
@@ -998,7 +1010,7 @@ func _finalize_push_lifecycle(pushing_curr: Dictionary, pushed_curr: Dictionary)
 		var prev_other := prev["other"] as Pawn
 		var prev_mode := int(prev["mode"])
 		on_pushed_ended(prev_other, prev_mode)
-		pushed_ended.emit(prev_other, prev_mode)
+		pushed_ended.emit(self, prev_other, prev_mode)
 
 	_pushing_prev = pushing_curr.duplicate(true)
 	_pushed_prev = pushed_curr.duplicate(true)
@@ -1178,12 +1190,16 @@ func _set_collision_exception_with(other: PhysicsBody2D, disabled: bool) -> void
 func add_external_impulse(impulse: Vector2) -> void:
 	# Public API for one-shot forces. Unit space: right(+x), down(+y), up(-y).
 	# Example: add_external_impulse(Vector2(10.0, -14.0))
-	_external_velocity += GameUnits.units_to_pixels_v2(impulse)
+	var impulse_px := GameUnits.units_to_pixels_v2(impulse)
+	_external_velocity.x += impulse_px.x
+	_vertical_velocity += impulse_px.y
 
 
 func set_external_velocity(velocity_value: Vector2) -> void:
-	# Public API for persistent forces when a system owns the whole external channel.
-	_external_velocity = GameUnits.units_to_pixels_v2(velocity_value)
+	# Public API for persistent forces when a system owns velocity channels.
+	var velocity_px := GameUnits.units_to_pixels_v2(velocity_value)
+	_external_velocity.x = velocity_px.x
+	_vertical_velocity = velocity_px.y
 
 
 func _play_jump_sfx(stream_override: AudioStream = null) -> void:
@@ -1297,6 +1313,14 @@ func on_move_ended(_current_velocity: float, _input_axis: float, _grounded: bool
 	pass
 
 
+func on_left_ground() -> void:
+	pass
+
+
+func on_started_falling() -> void:
+	pass
+
+
 func on_landed(_impact_velocity: Vector2, fall_distance_units: float = 0.0) -> void:
 	_play_land_sfx(_get_land_sfx_stream_for_landing(_impact_velocity, fall_distance_units))
 
@@ -1346,7 +1370,7 @@ func _compute_jump_velocity() -> float:
 	return (-2.0 * height) / maxf(time_to_peak, 0.001)
 
 
-func _compute_gravity(is_rising: bool) -> float:
+func compute_gravity(is_rising: bool) -> float:
 	var height := _jump_height_on_jump
 	if is_zero_approx(height):
 		height = jump_height
