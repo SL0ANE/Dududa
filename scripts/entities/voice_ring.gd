@@ -2,8 +2,6 @@
 extends Sprite2D
 class_name VoiceRing
 
-const GameUnits = preload("res://scripts/shared/game_units.gd")
-
 signal on_hit_pawn(pawn: Pawn, radius: float, emit_timestamp: int)
 signal on_progress_end()
 

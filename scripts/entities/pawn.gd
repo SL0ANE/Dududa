@@ -162,6 +162,8 @@ var _was_moving := false
 var _was_on_pawn_floor := false
 var _airborne_start_y_px := INF
 var _airborne_peak_y_px := INF
+# Latched true while airborne if the pawn touched a ceiling, so the arc peak was clamped.
+var _hit_ceiling_since_takeoff := false
 var last_fall_distance_units := 0.0
 var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
@@ -275,6 +277,7 @@ func _physics_process(delta: float) -> void:
 		_jump_count_since_ground = 0
 		_airborne_start_y_px = INF
 		_airborne_peak_y_px = INF
+		_hit_ceiling_since_takeoff = false
 	else:
 		_coyote_time_left = maxf(_coyote_time_left - delta, 0.0)
 		if is_inf(_airborne_start_y_px):
@@ -309,7 +312,10 @@ func _physics_process(delta: float) -> void:
 	var jumps_allowed := maxi(max_jump_count, 0)
 	var has_jumps_left := _jump_count_since_ground < jumps_allowed
 	var can_ground_jump := was_on_ground or _coyote_time_left > 0.0
-	var can_jump := has_jumps_left and (can_ground_jump or not was_on_ground)
+	# Prevent unlimited delayed first-jump after walking off edges.
+	# Air jumps are only allowed after at least one jump has been consumed.
+	var can_air_jump := (not can_ground_jump) and _jump_count_since_ground > 0
+	var can_jump := has_jumps_left and (can_ground_jump or can_air_jump)
 	if jump_pressed and can_jump:
 		_jump_height_on_jump = jump_height
 		_jump_time_to_peak_on_jump = jump_time_to_peak
@@ -354,6 +360,8 @@ func _physics_process(delta: float) -> void:
 	if was_on_ground and not is_on_floor():
 		_airborne_start_y_px = pre_move_position.y
 		_airborne_peak_y_px = minf(pre_move_position.y, global_position.y)
+	if is_on_ceiling():
+		_hit_ceiling_since_takeoff = true
 	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
 	# Reconcile channels with collision result to avoid drift over time.
 	_sync_velocity_components_after_slide(pre_slide_vertical_velocity)
@@ -1311,6 +1319,11 @@ func set_external_velocity(velocity_value: Vector2) -> void:
 	var velocity_px := GameUnits.units_to_pixels_v2(velocity_value)
 	_external_velocity.x = velocity_px.x
 	_vertical_velocity = velocity_px.y
+
+
+func has_hit_ceiling_since_takeoff() -> bool:
+	# True when the most recent airborne arc's peak was clamped by a ceiling.
+	return _hit_ceiling_since_takeoff
 
 
 func _play_jump_sfx(stream_override: AudioStream = null) -> void:
