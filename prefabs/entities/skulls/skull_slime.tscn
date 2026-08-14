@@ -486,7 +486,7 @@ sprite_default_facing = 1
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=565443965]
 position = Vector2(0, -5)
 sprite_frames = ExtResource("6_iw75m")
-animation = &""
+animation = &"Idle"
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2144877810]
 y_sort_enabled = true

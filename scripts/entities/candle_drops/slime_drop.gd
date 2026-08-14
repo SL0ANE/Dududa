@@ -1,18 +1,16 @@
 extends CandleDrop
 class_name SlimeDrop
 
-var climate: float = 0.0
-
-func _record_climate(pawn: Pawn) -> void:
-	var diff: float = GameUnits.pixels_to_units(pawn.position.y) - climate
-	if abs(diff) < 0.25:
+func on_pawn_contact_started(_other: Pawn, normal: Vector2) -> void:
+	if state != DropState.INDEPENDENT:
 		return
 
-	climate = GameUnits.pixels_to_units(pawn.position.y)
+	print("SlimeDrop: on_pawn_contact_started normal=%s" % normal)
 
-func _bounce(pawn: Pawn, impact_velocity: Vector2, fall_distance_units: float) -> void:
 
-	var required_height_px := maxf(0.0, pawn.position.y - GameUnits.units_to_pixels(climate))
+func _bounce_vertical(pawn: Pawn, fall_distance_units: float) -> void:
+	print("SlimeDrop: _bounce_vertical fall_distance_units=%f" % fall_distance_units)
+	var required_height_px := GameUnits.units_to_pixels(fall_distance_units)
 	if required_height_px <= 0.0:
 		return
 
@@ -30,13 +28,13 @@ func _bounce(pawn: Pawn, impact_velocity: Vector2, fall_distance_units: float) -
 	pawn.set_external_velocity(Vector2(0.0, -required_upward_speed))
 	# pawn._driven_velocity = Vector2(pawn._driven_velocity.x, 0.0)
 
+func _bounce_onland(pawn: Pawn, impact_velocity: Vector2, fall_distance_units: float) -> void:
+	_bounce_vertical(pawn, fall_distance_units)
+
 func _on_absorb(man: CandleMan) -> void:
-	if not man.started_falling.is_connected(_record_climate):
-		man.started_falling.connect(_record_climate)
-	if not man.landed.is_connected(_bounce):
-		man.landed.connect(_bounce)
+	if not man.landed.is_connected(_bounce_onland):
+		man.landed.connect(_bounce_onland)
 
 func _on_detach(man: CandleMan) -> void:
-	if man.started_falling.is_connected(_record_climate):
-		man.started_falling.disconnect(_record_climate)
-		man.landed.disconnect(_bounce)
+	if man.landed.is_connected(_bounce_onland):
+		man.landed.disconnect(_bounce_onland)

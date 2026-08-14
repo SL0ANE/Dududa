@@ -81,10 +81,12 @@ advance_mode = 2
 advance_expression = "expr_is_on_floor"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_q4th4"]
+switch_mode = 2
 advance_mode = 2
 advance_expression = "not expr_is_on_floor"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ck3r4"]
+switch_mode = 2
 advance_mode = 2
 advance_expression = "expr_is_on_floor and expr_is_moving"
 

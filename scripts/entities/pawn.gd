@@ -18,6 +18,9 @@ signal push_ended(pawn: Pawn, other: Pawn, mode: int)
 signal pushed_started(pawn: Pawn, other: Pawn, mode: int, direction: float)
 signal pushed_active(pawn: Pawn, other: Pawn, mode: int, direction: float, overlap: float)
 signal pushed_ended(pawn: Pawn, other: Pawn, mode: int)
+signal pawn_contact_started(pawn: Pawn, other: Pawn, normal: Vector2)
+signal pawn_contact_active(pawn: Pawn, other: Pawn, normal: Vector2)
+signal pawn_contact_ended(pawn: Pawn, other: Pawn, normal: Vector2)
 signal interacted_primary(pawn: Pawn)
 signal interacted_secondary(pawn: Pawn)
 
@@ -163,7 +166,9 @@ var last_fall_distance_units := 0.0
 var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
 var _pushed_prev := {}
+var _pawn_contacts_prev := {}
 var _floor_support_colliders_cached: Array[Object] = []
+var _floor_support_normals := {}
 
 var _jump_height_on_jump := 0.0
 var _jump_time_to_peak_on_jump := 0.0
@@ -332,6 +337,7 @@ func _physics_process(delta: float) -> void:
 		_update_animation_state(look_axis)
 		_process_move_lifecycle(0.0, move_axis, was_on_ground)
 		_refresh_floor_support_colliders_cache()
+		_process_pawn_contact_events()
 		_tick_contact_event_arm_delay()
 		return
 
@@ -345,6 +351,9 @@ func _physics_process(delta: float) -> void:
 	_stabilize_idle_solid_pawn(move_axis, jump_pressed, pre_move_position)
 	_was_on_pawn_floor = _is_current_floor_from_pawn()
 	_apply_pawn_push_collisions()
+	if was_on_ground and not is_on_floor():
+		_airborne_start_y_px = pre_move_position.y
+		_airborne_peak_y_px = minf(pre_move_position.y, global_position.y)
 	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
 	# Reconcile channels with collision result to avoid drift over time.
 	_sync_velocity_components_after_slide(pre_slide_vertical_velocity)
@@ -352,6 +361,7 @@ func _physics_process(delta: float) -> void:
 	var current_velocity := GameUnits.pixels_to_units(velocity.x)
 	_process_move_lifecycle(current_velocity, move_axis, is_on_floor())
 	_refresh_floor_support_colliders_cache()
+	_process_pawn_contact_events()
 	_tick_contact_event_arm_delay()
 
 
@@ -617,6 +627,90 @@ func _tick_contact_event_arm_delay() -> void:
 		_contact_events_arm_frames_left -= 1
 
 
+func _process_pawn_contact_events() -> void:
+	var contacts_curr := {}
+	for collider in _floor_support_colliders_cached:
+		var other := collider as Pawn
+		if other == null or other == self or not is_instance_valid(other):
+			continue
+		var key := other.get_instance_id()
+		contacts_curr[key] = {
+			"other": other,
+			"normal": _floor_support_normals.get(key, Vector2.UP),
+		}
+
+	_append_geometric_pawn_contacts(contacts_curr)
+
+	for i in range(get_slide_collision_count()):
+		var collision := get_slide_collision(i)
+		if collision == null:
+			continue
+
+		var other := collision.get_collider() as Pawn
+		if other == null or other == self or not is_instance_valid(other):
+			continue
+
+		var key := other.get_instance_id()
+		contacts_curr[key] = {
+			"other": other,
+			"normal": collision.get_normal(),
+		}
+
+	for key in contacts_curr.keys():
+		var data: Dictionary = contacts_curr[key]
+		var other := data["other"] as Pawn
+		var normal: Vector2 = data["normal"]
+		if not _pawn_contacts_prev.has(key):
+			on_pawn_contact_started(other, normal)
+			pawn_contact_started.emit(self, other, normal)
+		on_pawn_contact_active(other, normal)
+		pawn_contact_active.emit(self, other, normal)
+
+	for key in _pawn_contacts_prev.keys():
+		if contacts_curr.has(key):
+			continue
+		var previous: Dictionary = _pawn_contacts_prev[key]
+		var other := previous["other"] as Pawn
+		if other == null or not is_instance_valid(other):
+			continue
+		var normal: Vector2 = previous.get("normal", Vector2.UP)
+		on_pawn_contact_ended(other, normal)
+		pawn_contact_ended.emit(self, other, normal)
+
+	_pawn_contacts_prev = contacts_curr
+
+
+func _append_geometric_pawn_contacts(contacts_curr: Dictionary) -> void:
+	var my_bounds := _get_collision_bounds_pixels()
+	if my_bounds.size == Vector2.ZERO:
+		return
+
+	var my_center := my_bounds.get_center()
+	my_bounds = my_bounds.grow(1.0)
+	for node in get_tree().get_nodes_in_group(PAWN_GROUP):
+		var other := node as Pawn
+		if other == null or other == self or not is_instance_valid(other):
+			continue
+
+		var other_bounds := other._get_collision_bounds_pixels()
+		if other_bounds.size == Vector2.ZERO or not my_bounds.intersects(other_bounds.grow(1.0)):
+			continue
+
+		var delta := my_center - other_bounds.get_center()
+		var normal := Vector2.UP
+		if absf(delta.x) > absf(delta.y):
+			normal = Vector2(signf(delta.x), 0.0)
+		elif not is_zero_approx(delta.y):
+			normal = Vector2(0.0, signf(delta.y))
+
+		var key := other.get_instance_id()
+		if not contacts_curr.has(key):
+			contacts_curr[key] = {
+				"other": other,
+				"normal": normal,
+			}
+
+
 func _try_corner_correction(move_axis: float, delta: float) -> void:
 	if not is_on_floor():
 		return
@@ -700,6 +794,23 @@ func get_floor_support_colliders_cached() -> Array[Object]:
 
 func _refresh_floor_support_colliders_cache() -> void:
 	_floor_support_colliders_cached = _get_floor_support_colliders()
+	_floor_support_normals = _get_floor_support_normals()
+
+
+func _get_floor_support_normals() -> Dictionary:
+	var normals := {}
+	for i in range(get_slide_collision_count()):
+		var collision := get_slide_collision(i)
+		if collision == null or collision.get_normal().y > -0.5:
+			continue
+
+		var support := collision.get_collider() as Pawn
+		if support == null or support == self:
+			continue
+
+		normals[support.get_instance_id()] = collision.get_normal()
+
+	return normals
 
 
 func _get_floor_support_colliders(probe_distance_px: float = 2.0) -> Array[Object]:
@@ -1350,6 +1461,18 @@ func on_pushed_active(_other: Pawn, _mode: int, _direction: float, _overlap: flo
 
 
 func on_pushed_ended(_other: Pawn, _mode: int) -> void:
+	pass
+
+
+func on_pawn_contact_started(_other: Pawn, _normal: Vector2) -> void:
+	pass
+
+
+func on_pawn_contact_active(_other: Pawn, _normal: Vector2) -> void:
+	pass
+
+
+func on_pawn_contact_ended(_other: Pawn, _normal: Vector2) -> void:
 	pass
 
 
