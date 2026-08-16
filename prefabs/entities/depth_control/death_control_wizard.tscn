@@ -592,7 +592,7 @@ y_sort_enabled = true
 script = ExtResource("1_4ykyb")
 absorb_duration = 0.1
 absorb_duration_per_absorbed_drop = 0.05
-legacy_height = 0.8
+legacy_height = 0.7
 visual_bottom_offset = 0.5
 drop_root_path = NodePath("VisualPositionRoot/DropRoot")
 drops_on_initialization = Array[PackedScene]([ExtResource("2_eqphs")])
@@ -630,7 +630,7 @@ attenuation = 0.0
 
 [node name="VisualPositionRoot" type="Node2D" parent="." unique_id=947227969]
 z_index = 128
-position = Vector2(0, -32)
+position = Vector2(0, -33)
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="VisualPositionRoot" unique_id=1464487730]
 z_index = 1

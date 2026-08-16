@@ -165,6 +165,8 @@ var _airborne_peak_y_px := INF
 # Latched true while airborne if the pawn touched a ceiling, so the arc peak was clamped.
 var _hit_ceiling_since_takeoff := false
 var last_fall_distance_units := 0.0
+var last_land_timestamp := 0
+var land_timestamp := 0
 var _contact_events_arm_frames_left := CONTACT_EVENTS_ARM_DELAY_FRAMES
 var _pushing_prev := {}
 var _pushed_prev := {}
@@ -352,7 +354,9 @@ func _physics_process(delta: float) -> void:
 	var pre_slide_vertical_velocity := _vertical_velocity
 	velocity = Vector2(_driven_velocity.x + _external_velocity.x, _vertical_velocity)
 	var pre_slide_velocity := velocity
+
 	move_and_slide()
+
 	_try_floor_snap_after_slide(was_on_ground, was_on_pawn_floor, jump_pressed)
 	_stabilize_idle_solid_pawn(move_axis, jump_pressed, pre_move_position)
 	_was_on_pawn_floor = _is_current_floor_from_pawn()
@@ -363,13 +367,13 @@ func _physics_process(delta: float) -> void:
 	if is_on_ceiling():
 		_hit_ceiling_since_takeoff = true
 	_process_contact_events(was_on_ground, was_on_wall, pre_slide_velocity)
+	_process_pawn_contact_events()
 	# Reconcile channels with collision result to avoid drift over time.
 	_sync_velocity_components_after_slide(pre_slide_vertical_velocity)
 	_update_animation_state(look_axis)
 	var current_velocity := GameUnits.pixels_to_units(velocity.x)
 	_process_move_lifecycle(current_velocity, move_axis, is_on_floor())
 	_refresh_floor_support_colliders_cache()
-	_process_pawn_contact_events()
 	_tick_contact_event_arm_delay()
 
 
@@ -618,6 +622,8 @@ func _process_contact_events(was_on_ground: bool, was_on_wall: bool, pre_slide_v
 			var fall_distance_px := maxf(0.0, landing_y_px - _airborne_peak_y_px)
 			fall_distance_units = GameUnits.pixels_to_units(fall_distance_px)
 			last_fall_distance_units = fall_distance_units
+			last_land_timestamp = land_timestamp
+			land_timestamp = Engine.get_physics_frames()
 			_airborne_start_y_px = INF
 			_airborne_peak_y_px = INF
 		on_landed(impact_velocity, fall_distance_units)

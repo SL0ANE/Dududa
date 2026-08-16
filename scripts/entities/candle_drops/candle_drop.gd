@@ -178,6 +178,11 @@ func detach_to_independent() -> void:
 	_set_collision_enabled(true)
 	movement_enabled = _saved_movement_enabled
 	jump_enabled = _saved_jump_enabled
+	_airborne_peak_y_px = global_position.y
+	_airborne_start_y_px = global_position.y
+	_driven_velocity = Vector2.ZERO
+	_vertical_velocity = 0.0
+
 	if pawn_collision_mode != _saved_pawn_collision_mode:
 		pawn_collision_mode = _saved_pawn_collision_mode
 		call_deferred("_refresh_all_pawn_collisions")
